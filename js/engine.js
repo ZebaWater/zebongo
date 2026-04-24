@@ -8,8 +8,6 @@ export const JUDGMENTS = [
 ];
 
 // ─── HP Mode lookup table ──────────────────────────────────────────────────────
-// Each mode defines HP_INIT and per-judgment deltas.
-// "OneShot" is handled specially: any MISS triggers _triggerFail() directly.
 const HP_MODES = {
   Generous: { HP_INIT: 80,  PERFECT: +2.5, GREAT: +1.5, GOOD: +0.5, BAD: -2.0,  MISS: -4.0  },
   Normal:   { HP_INIT: 70,  PERFECT: +1.5, GREAT: +1.0, GOOD: +0.2, BAD: -4.0,  MISS: -8.0  },
@@ -20,17 +18,29 @@ const HP_MODES = {
 const HP_MAX  = 100;
 const HP_FAIL = 0;
 
-// ─── Visual Config (skinnable via CSS vars on canvas parent) ──────────────────
+// ─── Visual Config ────────────────────────────────────────────────────────────
 const SCROLL_SPEED = 700; // pixels per second notes travel
-const HIT_LINE_Y_RATIO = 0.82; // hit zone position from top
+const HIT_LINE_Y_RATIO = 0.82;
 const LOOKAHEAD_SECONDS = 2.0;
 const NOTE_HEIGHT = 20;
 const NOTE_RADIUS = 5;
 
+// Hold note tail release judgment windows (seconds from tailTime).
+// Release timing is more lenient than head timing:
+//   early release before tailTime → BAD only (no combo break)
+//   late release after tailTime   → graded normally
+//   tail window expires without release → tailMissed (BAD, no combo break)
+const HOLD_TAIL_WINDOWS = [
+  { name: 'PERFECT', window: 0.060 },
+  { name: 'GREAT',   window: 0.120 },
+  { name: 'GOOD',    window: 0.180 },
+  { name: 'BAD',     window: 0.260 },
+];
+// After this many seconds past tailTime with no release → auto-resolve as BAD
+const HOLD_TAIL_EXPIRE = 0.300;
+
 /**
- * Note skin catalog. IDs must match SHOP_ITEMS in firebase.js.
- * Each skin defines the per-lane color palette used when rendering notes.
- * `glow` controls shadow blur intensity (px).
+ * Note skin catalog.
  */
 export const NOTE_SKINS = {
   notes_neon: {
@@ -95,8 +105,6 @@ export const NOTE_SKINS = {
   },
 };
 
-// Mutable palette — the engine reads from these at every render, so skin
-// swaps (via engine.setNoteSkin) take effect on the very next frame.
 let LANE_COLORS = NOTE_SKINS.notes_neon.colors.slice();
 let LANE_DIM    = NOTE_SKINS.notes_neon.dim.slice();
 let NOTE_GLOW   = NOTE_SKINS.notes_neon.glow;
@@ -109,11 +117,9 @@ export class Engine {
     this.input = inputHandler;
 
     this.chart = null;
-    this.state = 'idle'; // idle | countdown | playing | paused | ended
+    this.state = 'idle';
 
-    // Note speed multiplier (set before start(), must not change mid-map)
     this._noteSpeedMult = 1.0;
-    // HP mode (set before start())
     this._hpMode = HP_MODES.Normal;
     this._hpModeIsOneShot = false;
 
@@ -126,21 +132,21 @@ export class Engine {
     this.totalHits = 0;
     this.totalWeightedAccuracy = 0;
 
-    // HP / life
+    // HP
     this.hp = HP_MODES.Normal.HP_INIT;
-    this.failOnZero = true;          // toggleable "practice mode"
+    this.failOnZero = true;
 
     // Pause tracking
-    this._pausedAt = 0;              // song-time position when paused
+    this._pausedAt = 0;
 
     // Visual fx
-    this.hitEffects = [];   // { lane, judgment, startTime, alpha }
-    this.laneFlash = [0, 0, 0, 0]; // flash intensity per lane
+    this.hitEffects = [];
+    this.laneFlash = [0, 0, 0, 0];
     this.lastJudgment = null;
     this.lastJudgmentTime = 0;
     this.comboPopTime = 0;
 
-    // RAF handle
+    // RAF
     this._rafId = null;
     this._boundLoop = this._loop.bind(this);
 
@@ -149,18 +155,22 @@ export class Engine {
     this._resizeObs.observe(canvas.parentElement);
     this._resize();
 
-    // Callbacks for UI
+    // Callbacks
     this.onScore = null;
     this.onCombo = null;
     this.onJudgment = null;
     this.onEnd = null;
     this.onCountdown = null;
-    this.onHp = null;           // (hp) → void, called on every HP change
-    this.onFail = null;         // (results) → void, when HP hits 0
+    this.onHp = null;
+    this.onFail = null;
 
     // Input
-    this._pressUnsub = this.input.on('press', e => this._onPress(e));
-    this._releaseUnsub = this.input.on('release', e => this._onRelease(e));
+    this._pressUnsub   = this.input.on('press',   e => this._onPress(e));
+    this._releaseUnsub = this.input.on('release',  e => this._onRelease(e));
+
+    // Hold tracking: lane → note being held (or null)
+    // Keyed by lane index so only one hold per lane at a time.
+    this._heldHolds = [null, null, null, null];
   }
 
   // ─── Public API ─────────────────────────────────────────────────────────────
@@ -171,22 +181,15 @@ export class Engine {
     this._resetScore();
   }
 
-  /** Set note speed multiplier. Must be called before start(). */
   setNoteSpeed(multiplier) {
     this._noteSpeedMult = multiplier ?? 1.0;
   }
 
-  /** Set HP drain mode. Must be called before start(). Valid: Generous Normal Hard Cruel OneShot */
   setHpMode(mode) {
     this._hpMode = HP_MODES[mode] || HP_MODES.Normal;
     this._hpModeIsOneShot = (mode === 'OneShot');
   }
 
-  /**
-   * Swap the note skin at runtime. `id` must exist in NOTE_SKINS.
-   * If `id` is unknown, falls back silently to 'notes_neon' so the game
-   * never crashes on a stale/missing cosmetic reference.
-   */
   setNoteSkin(id) {
     const skin = NOTE_SKINS[id] || NOTE_SKINS.notes_neon;
     LANE_COLORS = skin.colors.slice();
@@ -209,12 +212,13 @@ export class Engine {
     this.state = 'paused';
     this.audio.stop();
     cancelAnimationFrame(this._rafId);
+    // Auto-resolve any active holds on pause
+    this._heldHolds = [null, null, null, null];
   }
 
   resume() {
     if (this.state !== 'paused') return;
     this.state = 'playing';
-    // Restore from recorded position (not from chart.offset)
     this.audio.play(this._pausedAt);
     this._startLoop();
   }
@@ -226,6 +230,7 @@ export class Engine {
     this._resetScore();
     this.hitEffects = [];
     this.laneFlash = [0, 0, 0, 0];
+    this._heldHolds = [null, null, null, null];
     this.lastJudgment = null;
     this.state = 'idle';
     this._render(0);
@@ -245,9 +250,6 @@ export class Engine {
       accuracy: this._calcAccuracy(),
       counts: { ...this.counts },
       totalNotes: this.chart?.totalNotes ?? 0,
-      // True when the run ended because HP hit 0, not a completed clear.
-      // submitScore() uses this so a fail doesn't mark first-clear or
-      // write a leaderboard entry.
       failed: this.state === 'failed',
     };
   }
@@ -262,11 +264,12 @@ export class Engine {
 
   _onRelease(e) {
     this.laneFlash[e.lane] = 0;
+    if (this.state !== 'playing') return;
+    this._judgeRelease(e.lane);
   }
 
   _judgePress(lane, time) {
     const songTime = this.audio.getCurrentTime();
-    // Find the earliest unhit note in this lane within max window
     const candidate = this.chart.notes.find(n =>
       n.lane === lane &&
       !n.hit &&
@@ -274,18 +277,94 @@ export class Engine {
       Math.abs(n.time - songTime) <= JUDGMENTS[JUDGMENTS.length - 2].window
     );
 
-    if (!candidate) {
-      // Ghost press - no note nearby, just flash
-      return;
-    }
+    if (!candidate) return;
 
     const delta = Math.abs(candidate.time - songTime);
     const judgment = JUDGMENTS.find(j => delta <= j.window);
-
-    if (judgment.name === 'MISS') return; // shouldn't happen but guard
+    if (judgment.name === 'MISS') return;
 
     candidate.hit = true;
-    this._applyJudgment(judgment, lane);
+
+    if (candidate.isHold) {
+      // Register this as the active hold on this lane
+      this._heldHolds[lane] = candidate;
+      // Head press judgment — score & combo as normal
+      this._applyJudgment(judgment, lane);
+    } else {
+      this._applyJudgment(judgment, lane);
+    }
+  }
+
+  _judgeRelease(lane) {
+    const note = this._heldHolds[lane];
+    if (!note) return;
+    if (!note.isHold || note.tailHit || note.tailMissed) {
+      this._heldHolds[lane] = null;
+      return;
+    }
+
+    const songTime = this.audio.getCurrentTime();
+    const delta = songTime - note.tailTime; // negative = early, positive = late
+
+    // Determine tail judgment by absolute timing distance from tailTime
+    const absDelta = Math.abs(delta);
+    let tailJudgment;
+    for (const tw of HOLD_TAIL_WINDOWS) {
+      if (absDelta <= tw.window) {
+        tailJudgment = JUDGMENTS.find(j => j.name === tw.name);
+        break;
+      }
+    }
+    if (!tailJudgment) tailJudgment = JUDGMENTS.find(j => j.name === 'BAD');
+
+    // Early release (before tailTime): clamp to BAD regardless of window
+    if (delta < 0) {
+      tailJudgment = JUDGMENTS.find(j => j.name === 'BAD');
+    }
+
+    note.tailHit = true;
+    this._heldHolds[lane] = null;
+
+    // Tail judgment: scores and HP but NEVER breaks combo
+    this._applyTailJudgment(tailJudgment, lane);
+  }
+
+  /**
+   * Apply a hold tail judgment.
+   * Tail judgements score points and affect HP, but a BAD tail does NOT
+   * break combo. Only a full MISS (unstarted head) breaks combo.
+   */
+  _applyTailJudgment(judgment, lane) {
+    // Score with current combo multiplier (same formula as heads)
+    this.score += judgment.score * Math.max(1, this.combo * 0.1 | 0);
+
+    // Only advance combo if the tail wasn't the worst possible
+    // (BAD tail = no combo increment, but also no combo break)
+    if (judgment.name !== 'BAD') {
+      this.combo++;
+      this.maxCombo = Math.max(this.maxCombo, this.combo);
+    }
+
+    this.counts[judgment.name]++;
+    this.totalHits++;
+    this.totalWeightedAccuracy += judgment.score / JUDGMENTS[0].score;
+
+    this._changeHp(this._hpMode[judgment.name] || 0);
+
+    this.lastJudgment = judgment;
+    this.lastJudgmentTime = performance.now();
+    if (judgment.name !== 'BAD') this.comboPopTime = performance.now();
+
+    this.hitEffects.push({
+      lane,
+      judgment,
+      startTime: performance.now(),
+      alpha: 1,
+    });
+
+    this.onScore?.(this.score);
+    this.onCombo?.(this.combo, judgment);
+    this.onJudgment?.(judgment);
   }
 
   _applyJudgment(judgment, lane) {
@@ -296,7 +375,6 @@ export class Engine {
     this.totalHits++;
     this.totalWeightedAccuracy += judgment.score / JUDGMENTS[0].score;
 
-    // HP change
     this._changeHp(this._hpMode[judgment.name] || 0);
 
     this.lastJudgment = judgment;
@@ -333,9 +411,18 @@ export class Engine {
 
   _checkMisses(songTime) {
     const lateWindow = JUDGMENTS[JUDGMENTS.length - 2].window;
+
     this.chart.notes.forEach(n => {
+      // ── Head miss ──
       if (!n.hit && !n.missed && songTime - n.time > lateWindow) {
         n.missed = true;
+        // If hold, also immediately mark tail as missed — player can't
+        // start a hold from the middle after the head was missed.
+        if (n.isHold) {
+          n.tailMissed = true;
+          // Clear any phantom hold reference
+          if (this._heldHolds[n.lane] === n) this._heldHolds[n.lane] = null;
+        }
         this.combo = 0;
         this.counts.MISS++;
         if (this._hpModeIsOneShot) {
@@ -349,6 +436,20 @@ export class Engine {
         this.onJudgment?.(this.lastJudgment);
       }
 
+      // ── Hold tail expiry (player never released in time) ──
+      if (
+        n.isHold &&
+        n.hit &&
+        !n.tailHit &&
+        !n.tailMissed &&
+        songTime - n.tailTime > HOLD_TAIL_EXPIRE
+      ) {
+        n.tailMissed = true;
+        if (this._heldHolds[n.lane] === n) this._heldHolds[n.lane] = null;
+        // BAD tail — no combo break
+        const badJudgment = JUDGMENTS.find(j => j.name === 'BAD');
+        this._applyTailJudgment(badJudgment, n.lane);
+      }
     });
   }
 
@@ -379,13 +480,10 @@ export class Engine {
 
     const songTime = this.audio.getCurrentTime();
 
-    // Check misses
     this._checkMisses(songTime);
 
-    // Fail may have been triggered by a miss this frame
     if (this.state !== 'playing') return;
 
-    // Check song end
     if (songTime >= this.chart.durationSeconds + 1) {
       this.state = 'ended';
       this.audio.stop();
@@ -426,7 +524,6 @@ export class Engine {
     c.fillStyle = '#0a0a0f';
     c.fillRect(0, 0, W, H);
 
-    // Scanlines (subtle, drawn once)
     c.fillStyle = 'rgba(0,0,0,0.07)';
     for (let y = 0; y < H; y += 4) {
       c.fillRect(0, y, W, 2);
@@ -437,16 +534,13 @@ export class Engine {
     // ── Lane backgrounds ──
     for (let i = 0; i < 4; i++) {
       const x = i * laneW;
-      const flash = this.laneFlash[i];
       const held = this.input.isHeld(i);
 
-      // Lane bg with subtle color tint
       c.fillStyle = held
         ? `rgba(${this._hexToRgb(LANE_COLORS[i])}, 0.12)`
         : `rgba(${this._hexToRgb(LANE_COLORS[i])}, 0.04)`;
       c.fillRect(x, 0, laneW, H);
 
-      // Lane dividers
       if (i > 0) {
         c.strokeStyle = 'rgba(255,255,255,0.06)';
         c.lineWidth = 1;
@@ -456,7 +550,6 @@ export class Engine {
         c.stroke();
       }
 
-      // Decay flash
       if (this.laneFlash[i] > 0) {
         this.laneFlash[i] = Math.max(0, this.laneFlash[i] - 0.08);
       }
@@ -483,7 +576,6 @@ export class Engine {
     }
 
     // ── Hit line ──
-    // Glow effect for hit zone
     const glowGrad = c.createLinearGradient(0, hitY - 8, 0, hitY + 8);
     glowGrad.addColorStop(0, 'transparent');
     glowGrad.addColorStop(0.5, 'rgba(255,255,255,0.15)');
@@ -505,22 +597,27 @@ export class Engine {
       const held = this.input.isHeld(i);
       const color = LANE_COLORS[i];
 
-      // Receiver circle
+      // Pulse the receiver if this lane has an active hold in progress
+      const hasActiveHold = this._heldHolds[i] !== null;
+
       c.beginPath();
-      c.arc(cx, hitY, 18, 0, Math.PI * 2);
+      c.arc(cx, hitY, hasActiveHold ? 22 : 18, 0, Math.PI * 2);
       c.fillStyle = held ? color : 'rgba(255,255,255,0.08)';
       c.fill();
-      c.strokeStyle = held ? color : LANE_DIM[i];
-      c.lineWidth = 2;
+      c.strokeStyle = hasActiveHold ? color : (held ? color : LANE_DIM[i]);
+      c.lineWidth = hasActiveHold ? 3 : 2;
+      if (hasActiveHold) {
+        c.shadowColor = color;
+        c.shadowBlur = 12;
+      }
       c.stroke();
+      c.shadowBlur = 0;
 
-      // Inner dot
       c.beginPath();
       c.arc(cx, hitY, 5, 0, Math.PI * 2);
       c.fillStyle = held ? '#fff' : 'rgba(255,255,255,0.3)';
       c.fill();
 
-      // Key hint label
       const keys = ['D', 'F', 'J', 'K'];
       c.fillStyle = held ? '#fff' : 'rgba(255,255,255,0.25)';
       c.font = `bold 10px 'Courier New', monospace`;
@@ -530,8 +627,14 @@ export class Engine {
 
     // ── Notes ──
     if (this.chart) {
+      const runtimeSpeed = SCROLL_SPEED * this._noteSpeedMult;
       const visibleNotes = this.chart.getNotesInWindow(songTime, LOOKAHEAD_SECONDS);
-      visibleNotes.forEach(note => this._drawNote(c, note, songTime, hitY, laneW, W));
+      // Draw hold bodies first (behind tap notes / heads)
+      visibleNotes.forEach(note => {
+        if (note.isHold) this._drawHoldBody(c, note, songTime, hitY, laneW, runtimeSpeed);
+      });
+      // Then draw all note heads on top
+      visibleNotes.forEach(note => this._drawNote(c, note, songTime, hitY, laneW, runtimeSpeed));
     }
 
     // ── Hit effects ──
@@ -582,38 +685,122 @@ export class Engine {
     }
   }
 
-  _drawNote(c, note, songTime, hitY, laneW, W) {
+  /**
+   * Draw the hold body (the connector bar between head and tail).
+   * Drawn before heads so heads always render on top.
+   */
+  _drawHoldBody(c, note, songTime, hitY, laneW, runtimeSpeed) {
+    const color = LANE_COLORS[note.lane];
+    const x = note.lane * laneW;
+    const cx = x + laneW / 2;
+    const noteW = laneW * 0.55;
+    const bodyW = noteW * 0.45; // narrower than head
+
+    // Head Y position — clamp to hitY if already hit (being held)
+    const headY = note.hit
+      ? hitY
+      : hitY - (note.time - songTime) * runtimeSpeed;
+
+    // Tail Y
+    const tailY = hitY - (note.tailTime - songTime) * runtimeSpeed;
+
+    if (tailY > hitY + 10) return; // tail is below the hit line, nothing to draw
+
+    const topY    = Math.max(tailY, -NOTE_HEIGHT);
+    const bottomY = Math.min(headY, hitY);
+    const barH    = bottomY - topY;
+    if (barH <= 0) return;
+
+    // Body gradient (slightly transparent)
+    const grad = c.createLinearGradient(cx, topY, cx, bottomY);
+    grad.addColorStop(0, `rgba(${this._hexToRgb(color)}, 0.35)`);
+    grad.addColorStop(1, `rgba(${this._hexToRgb(color)}, 0.60)`);
+
+    c.save();
+    c.fillStyle = grad;
+    c.shadowColor = color;
+    c.shadowBlur = 6;
+    c.fillRect(cx - bodyW / 2, topY, bodyW, barH);
+    c.shadowBlur = 0;
+
+    // Tail cap (small rounded end)
+    if (tailY >= -NOTE_HEIGHT && !note.tailHit && !note.tailMissed) {
+      c.fillStyle = color;
+      c.shadowColor = color;
+      c.shadowBlur = NOTE_GLOW;
+      c.beginPath();
+      this._roundedRect(c, cx - noteW / 2, tailY - NOTE_HEIGHT / 2, noteW, NOTE_HEIGHT * 0.7, NOTE_RADIUS);
+      c.fill();
+      c.shadowBlur = 0;
+
+      // Tail cap inner marker (distinguishes it from the head)
+      c.fillStyle = 'rgba(255,255,255,0.55)';
+      c.beginPath();
+      c.arc(cx, tailY - NOTE_HEIGHT * 0.1, 4, 0, Math.PI * 2);
+      c.fill();
+    }
+    c.restore();
+  }
+
+  _drawNote(c, note, songTime, hitY, laneW, runtimeSpeed) {
     const timeOffset = note.time - songTime;
-    const runtimeSpeed = SCROLL_SPEED * this._noteSpeedMult;
     const y = hitY - (timeOffset * runtimeSpeed);
     const x = note.lane * laneW;
     const cx = x + laneW / 2;
     const noteW = laneW * 0.55;
     const color = LANE_COLORS[note.lane];
 
-    // Don't draw if below hit line (missed/just hit) or above viewport
     if (y > hitY + 40) return;
 
-    // ── Note head ──
+    // For a hold that's actively being held, draw the head clamped at hitY
+    // with a glowing held appearance
+    if (note.isHold && note.hit && !note.tailHit && !note.tailMissed) {
+      // Draw pulsing head at the hit line to indicate active hold
+      const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 80);
+      c.shadowColor = color;
+      c.shadowBlur = NOTE_GLOW * 1.5;
+      c.fillStyle = color;
+      c.globalAlpha = pulse;
+      c.beginPath();
+      this._roundedRect(c, cx - noteW / 2, hitY - NOTE_HEIGHT / 2, noteW, NOTE_HEIGHT, NOTE_RADIUS);
+      c.fill();
+      c.globalAlpha = 1;
+      c.shadowBlur = 0;
+      return;
+    }
+
     if (!note.hit) {
-      const noteY = note.hit ? hitY : y;
+      const noteY = y;
       if (noteY < -NOTE_HEIGHT || noteY > hitY + 10) return;
 
-      // Glow
       c.shadowColor = color;
       c.shadowBlur = NOTE_GLOW;
 
-      // Note body
-      c.fillStyle = color;
-      c.beginPath();
-      this._roundedRect(c, cx - noteW / 2, noteY - NOTE_HEIGHT / 2, noteW, NOTE_HEIGHT, NOTE_RADIUS);
-      c.fill();
+      // Hold heads get a slightly different shape: brighter border
+      if (note.isHold) {
+        c.fillStyle = color;
+        c.beginPath();
+        this._roundedRect(c, cx - noteW / 2, noteY - NOTE_HEIGHT / 2, noteW, NOTE_HEIGHT, NOTE_RADIUS);
+        c.fill();
 
-      // Specular highlight
-      c.fillStyle = 'rgba(255,255,255,0.35)';
-      c.beginPath();
-      this._roundedRect(c, cx - noteW / 2 + 3, noteY - NOTE_HEIGHT / 2 + 3, noteW - 6, NOTE_HEIGHT / 3, 2);
-      c.fill();
+        // Border to distinguish hold head
+        c.strokeStyle = 'rgba(255,255,255,0.7)';
+        c.lineWidth = 2;
+        c.beginPath();
+        this._roundedRect(c, cx - noteW / 2, noteY - NOTE_HEIGHT / 2, noteW, NOTE_HEIGHT, NOTE_RADIUS);
+        c.stroke();
+      } else {
+        c.fillStyle = color;
+        c.beginPath();
+        this._roundedRect(c, cx - noteW / 2, noteY - NOTE_HEIGHT / 2, noteW, NOTE_HEIGHT, NOTE_RADIUS);
+        c.fill();
+
+        // Specular highlight
+        c.fillStyle = 'rgba(255,255,255,0.35)';
+        c.beginPath();
+        this._roundedRect(c, cx - noteW / 2 + 3, noteY - NOTE_HEIGHT / 2 + 3, noteW - 6, NOTE_HEIGHT / 3, 2);
+        c.fill();
+      }
 
       c.shadowBlur = 0;
     }
@@ -633,7 +820,6 @@ export class Engine {
     c.arc(cx, hitY, radius, 0, Math.PI * 2);
     c.stroke();
 
-    // Particles
     const particleCount = 6;
     for (let i = 0; i < particleCount; i++) {
       const angle = (i / particleCount) * Math.PI * 2;
@@ -714,6 +900,7 @@ export class Engine {
     this.lastJudgment = null;
     this.hitEffects = [];
     this.laneFlash = [0, 0, 0, 0];
+    this._heldHolds = [null, null, null, null];
     this.hp = this._hpMode.HP_INIT;
     this._pausedAt = 0;
     this.onHp?.(this.hp);
