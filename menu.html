@@ -8,10 +8,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Black+Ops+One&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0a0a0f; --bg-panel: #111118; --bg-card: #131320;
-  --border: rgba(255,255,255,0.08); --border-hi: rgba(255,255,255,0.18);
+  --bg: #0a0a0f; --bg-panel: #0f0f1a; --bg-card: #0d0d1c;
+  --border: rgba(255,255,255,0.07); --border-hi: rgba(255,255,255,0.18);
   --text: #e8e8f0; --text-dim: rgba(232,232,240,0.45); --text-faint: rgba(232,232,240,0.15);
-  --accent: #FFE566; --accent-glow: rgba(255,229,102,0.25);
+  --accent: #FFE566; --accent-glow: rgba(255,229,102,0.28);
   --err: #FF4D6D; --ok: #88FF99;
   --lane-0: #FF4D6D; --lane-1: #FFB347; --lane-2: #4DC4FF; --lane-3: #B47DFF;
   --font-d: 'Black Ops One', cursive; --font-m: 'Share Tech Mono', monospace;
@@ -23,42 +23,68 @@ html, body {
   font-family: var(--font-m); -webkit-font-smoothing: antialiased; overflow: hidden;
 }
 
+/* ─── Ambient bg glow ─────────────────────────────────── */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 15% 20%, rgba(255,77,109,0.05) 0%, transparent 40%),
+    radial-gradient(ellipse at 85% 80%, rgba(180,125,255,0.05) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 50%, rgba(77,196,255,0.03) 0%, transparent 60%);
+  animation: ambientDrift 20s ease-in-out infinite alternate;
+}
+@keyframes ambientDrift {
+  from { transform: scale(1) translate(0,0); }
+  to   { transform: scale(1.05) translate(1%,1%); }
+}
+
 /* ─── Top bar ─────────────────────────────────────────── */
 #topbar {
   height: var(--topbar); background: var(--bg-panel);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0;
   position: relative; z-index: 10;
+  box-shadow: 0 1px 30px rgba(0,0,0,0.4);
 }
-.logo { font-family: var(--font-d); font-size: 20px; letter-spacing: 2px; }
-.logo span { color: var(--accent); }
+#topbar::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg,
+    transparent, var(--lane-0) 20%, var(--lane-1) 40%,
+    var(--lane-2) 60%, var(--lane-3) 80%, transparent);
+  opacity: 0.3;
+}
+.logo { font-family: var(--font-d); font-size: 20px; letter-spacing: 2px; cursor: pointer; text-decoration: none; color: var(--text); }
+.logo span { color: var(--accent); text-shadow: 0 0 12px var(--accent-glow); }
 .topbar-spacer { flex: 1; }
 .profile-btn {
   display: flex; align-items: center; gap: 8px;
   padding: 6px 12px; border: 1px solid var(--border);
   background: none; cursor: pointer; color: var(--text); font-family: var(--font-m);
-  font-size: 11px; letter-spacing: 1px; transition: border-color .15s;
+  font-size: 13px; letter-spacing: 1px;
+  transition: border-color .2s, background .2s, box-shadow .2s;
 }
-.profile-btn:hover { border-color: var(--border-hi); }
+.profile-btn:hover { border-color: rgba(255,229,102,0.3); background: rgba(255,229,102,0.04); box-shadow: 0 0 12px rgba(255,229,102,0.08); }
 .profile-avatar { font-size: 18px; }
-.profile-name { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .logout-btn {
   width: 32px; height: 32px; background: none;
   border: 1px solid var(--border); color: var(--text-dim);
-  font-size: 16px; cursor: pointer; transition: border-color .15s, color .15s;
+  font-size: 16px; cursor: pointer;
+  transition: border-color .2s, color .2s, background .2s;
   display: flex; align-items: center; justify-content: center;
 }
-.logout-btn:hover { border-color: var(--err); color: var(--err); }
+.logout-btn:hover { border-color: var(--err); color: var(--err); background: rgba(255,77,109,0.07); }
 .currency-badge {
   display: flex; align-items: center; gap: 5px;
-  padding: 4px 10px; border: 1px solid var(--border);
+  padding: 4px 10px; border: 1px solid rgba(255,229,102,0.2);
   font-size: 12px; font-family: var(--font-d); color: var(--accent);
+  background: rgba(255,229,102,0.05); box-shadow: 0 0 10px rgba(255,229,102,0.08);
 }
 
 /* ─── Layout ──────────────────────────────────────────── */
 #app {
   display: flex; flex-direction: column;
   height: calc(100vh - var(--topbar)); overflow: hidden;
+  position: relative; z-index: 1;
 }
 
 /* ─── Tabs ────────────────────────────────────────────── */
@@ -67,12 +93,14 @@ html, body {
   border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 .tab {
-  padding: 10px 20px; font-size: 10px; letter-spacing: 3px;
+  padding: 12px 20px; font-size: 12px; letter-spacing: 2px;
   text-transform: uppercase; color: var(--text-dim);
   border: none; border-bottom: 2px solid transparent;
-  background: none; cursor: pointer; transition: color .15s, border-color .15s;
+  background: none; cursor: pointer;
+  transition: color .2s, border-color .2s, text-shadow .2s;
 }
-.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); text-shadow: 0 0 14px var(--accent-glow); }
+.tab:not(.active):hover { color: var(--text); }
 
 /* ─── Search + filters ────────────────────────────────── */
 #controls {
@@ -81,139 +109,147 @@ html, body {
   flex-wrap: wrap; align-items: center;
 }
 #search {
-  flex: 1; min-width: 180px; height: 36px; padding: 0 12px;
-  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-  color: var(--text); font-family: var(--font-m); font-size: 12px; outline: none;
+  flex: 1; min-width: 180px; height: 38px; padding: 0 12px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font-m); font-size: 14px; outline: none;
+  transition: border-color .2s, box-shadow .2s, background .2s;
 }
-#search:focus { border-color: var(--border-hi); }
+#search:focus { border-color: rgba(255,229,102,0.35); background: rgba(255,229,102,0.03); box-shadow: 0 0 0 3px rgba(255,229,102,0.05); }
 #search::placeholder { color: var(--text-dim); }
 .filter-btn {
   height: 36px; padding: 0 12px;
   background: none; border: 1px solid var(--border);
   color: var(--text-dim); font-family: var(--font-m);
-  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
-  cursor: pointer; transition: all .12s; white-space: nowrap;
+  font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
 }
-.filter-btn:hover { border-color: var(--border-hi); color: var(--text); }
-.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #0a0a0f; }
+.filter-btn:hover { border-color: var(--border-hi); color: var(--text); background: rgba(255,255,255,0.03); }
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #0a0a0f; box-shadow: 0 0 16px rgba(255,229,102,0.3); }
 #create-btn {
   height: 36px; padding: 0 16px;
-  background: none; border: 1px solid var(--ok);
+  background: rgba(136,255,153,0.05); border: 1px solid rgba(136,255,153,0.3);
   color: var(--ok); font-family: var(--font-d);
   font-size: 12px; letter-spacing: 2px; cursor: pointer;
-  transition: background .12s, color .12s;
+  transition: background .15s, color .15s, box-shadow .15s;
 }
-#create-btn:hover { background: var(--ok); color: #0a0a0f; }
+#create-btn:hover { background: var(--ok); color: #0a0a0f; box-shadow: 0 0 20px rgba(136,255,153,0.3); }
 
 /* ─── Content area ────────────────────────────────────── */
 #content { flex: 1; overflow-y: auto; padding: 16px; }
 #content::-webkit-scrollbar { width: 4px; }
 #content::-webkit-scrollbar-track { background: transparent; }
-#content::-webkit-scrollbar-thumb { background: var(--border-hi); }
+#content::-webkit-scrollbar-thumb { background: rgba(255,229,102,0.2); border-radius: 2px; }
 
 /* ─── Loading / empty ─────────────────────────────────── */
-.state-msg {
-  text-align: center; padding: 60px 20px;
-  font-size: 12px; letter-spacing: 2px; color: var(--text-dim);
-}
+.state-msg { text-align: center; padding: 60px 20px; font-size: 12px; letter-spacing: 2px; color: var(--text-dim); }
 .spinner {
-  width: 24px; height: 24px; border: 2px solid var(--border);
+  width: 24px; height: 24px; border: 2px solid rgba(255,229,102,0.1);
   border-top-color: var(--accent); border-radius: 50%;
   animation: spin .7s linear infinite; margin: 0 auto 12px;
+  box-shadow: 0 0 10px rgba(255,229,102,0.15);
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ─── Level cards ─────────────────────────────────────── */
-#level-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
-}
+#level-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(500px, 1fr)); gap: 16px; }
 .level-card {
   background: var(--bg-card); border: 1px solid var(--border);
   padding: 16px; cursor: pointer;
-  transition: border-color .15s, transform .12s;
+  transition: border-color .2s, transform .2s, box-shadow .2s;
   position: relative; overflow: hidden;
 }
-.level-card:hover { border-color: var(--border-hi); transform: translateY(-2px); }
+.level-card:hover { border-color: var(--border-hi); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05); }
 .card-diff-bar {
   position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+  transition: width .2s; box-shadow: 2px 0 12px currentColor;
 }
+.level-card:hover .card-diff-bar { width: 4px; }
 .level-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.card-title { font-family: var(--font-d); font-size: 15px; letter-spacing: 1px; flex: 1; }
-.card-diff { font-size: 11px; }
-.card-artist { font-size: 11px; color: var(--text-dim); margin-top: 4px; letter-spacing: 1px; }
-.card-creator { font-size: 10px; color: var(--text-dim); margin-top: 3px; letter-spacing: 1px; }
+.card-title { font-family: var(--font-d); font-size: 18px; letter-spacing: 1px; flex: 1; }
+.card-diff { font-size: 14px; animation: diffCycle 8s linear infinite; }
+@keyframes diffCycle { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.3) saturate(1.4)} }
+.card-artist { font-size: 13px; color: var(--text-dim); margin-top: 5px; letter-spacing: 1px; }
+.card-creator { font-size: 12px; color: var(--text-dim); margin-top: 4px; letter-spacing: 1px; }
 .card-creator span { color: var(--accent); }
-.card-meta {
-  display: flex; gap: 14px; margin-top: 12px;
-  font-size: 10px; color: var(--text-dim); letter-spacing: 1px;
-  flex-wrap: wrap; align-items: center;
-}
+.card-meta { display: flex; gap: 14px; margin-top: 12px; font-size: 13px; color: var(--text-dim); letter-spacing: 0.5px; flex-wrap: wrap; align-items: center; }
 .card-meta span { display: flex; align-items: center; gap: 4px; }
+.card-like-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .card-like-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: none; border: none; cursor: pointer;
-  font-family: var(--font-m); font-size: 10px; letter-spacing: 1px;
-  color: var(--text-dim); padding: 0; transition: color .15s;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,77,109,0.06); border: 1px solid rgba(255,77,109,0.2);
+  cursor: pointer; font-family: var(--font-m); font-size: 13px; letter-spacing: 1px;
+  color: var(--text-dim); padding: 6px 14px; transition: background .2s, border-color .2s, color .2s, box-shadow .2s;
 }
-.card-like-btn:hover  { color: var(--err); }
-.card-like-btn.liked  { color: var(--err); }
+.card-like-btn:hover { background: rgba(255,77,109,0.14); border-color: rgba(255,77,109,0.5); color: var(--err); box-shadow: 0 0 12px rgba(255,77,109,0.15); }
+.card-like-btn.liked { background: rgba(255,77,109,0.14); border-color: var(--err); color: var(--err); box-shadow: 0 0 10px rgba(255,77,109,0.2); }
 .card-like-btn:disabled { opacity: 0.5; cursor: default; }
-.card-actions {
-  display: flex; flex-direction: column; gap: 6px; margin-top: 12px;
+.card-like-heart { font-size: 15px; line-height: 1; }
+.card-preview-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  background: rgba(77,196,255,0.06); border: 1px solid rgba(77,196,255,0.2);
+  cursor: pointer; font-family: var(--font-m); font-size: 12px; letter-spacing: 1px;
+  color: var(--text-dim); padding: 6px 11px;
+  transition: background .2s, border-color .2s, color .2s, box-shadow .2s; white-space: nowrap; flex-shrink: 0;
 }
-.card-row {
-  display: flex; gap: 6px;
-}
+.card-preview-btn:hover { background: rgba(77,196,255,0.14); border-color: rgba(77,196,255,0.5); color: var(--lane-2); box-shadow: 0 0 12px rgba(77,196,255,0.15); }
+.card-preview-btn.playing { background: rgba(77,196,255,0.14); border-color: var(--lane-2); color: var(--lane-2); box-shadow: 0 0 10px rgba(77,196,255,0.2); }
+.card-actions { display: flex; flex-direction: column; gap: 7px; margin-top: 12px; }
+.card-row { display: flex; gap: 6px; }
 .card-btn {
-  flex: 1; height: 32px; font-family: var(--font-d); font-size: 11px;
-  letter-spacing: 2px; border: none; cursor: pointer; transition: opacity .12s;
+  flex: 1; height: 36px; font-family: var(--font-d); font-size: 13px;
+  letter-spacing: 2px; border: none; cursor: pointer; transition: opacity .15s, box-shadow .15s, transform .1s;
 }
-.card-btn:hover { opacity: 0.82; }
-.play-btn    { background: var(--accent); color: #0a0a0f; }
-.edit-btn    { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border); }
-.publish-btn { background: none; color: var(--ok); border: 1px solid rgba(136,255,153,0.3); }
-.unpub-btn   { background: none; color: var(--text-dim); border: 1px solid var(--border); }
-.del-btn     { background: none; color: var(--err); border: 1px solid rgba(255,77,109,0.3); flex: 0 0 44px; }
-.verify-btn  { background: rgba(136,255,153,0.1); color: var(--ok); border: 1px solid rgba(136,255,153,0.3); }
-.unverify-btn{ background: rgba(255,229,102,0.08); color: var(--accent); border: 1px solid rgba(255,229,102,0.3); }
+.card-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.card-btn:active { transform: scale(0.97); }
+.play-btn    { background: var(--accent); color: #0a0a0f; box-shadow: 0 0 20px rgba(255,229,102,0.2); }
+.play-btn:hover { box-shadow: 0 0 30px rgba(255,229,102,0.4); }
+.edit-btn    { background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--border); }
+.lb-btn      { background: rgba(77,196,255,0.07); color: var(--lane-2); border: 1px solid rgba(77,196,255,0.25); flex: 0 0 80px; }
+.lb-btn:hover { box-shadow: 0 0 14px rgba(77,196,255,0.2); }
+.publish-btn { background: rgba(136,255,153,0.07); color: var(--ok); border: 1px solid rgba(136,255,153,0.3); }
+.publish-btn:hover { box-shadow: 0 0 14px rgba(136,255,153,0.15); }
+.unpub-btn   { background: rgba(255,255,255,0.04); color: var(--text-dim); border: 1px solid var(--border); }
+.del-btn     { background: rgba(255,77,109,0.07); color: var(--err); border: 1px solid rgba(255,77,109,0.3); flex: 0 0 44px; }
+.del-btn:hover { box-shadow: 0 0 14px rgba(255,77,109,0.2); }
+.verify-btn  { background: rgba(136,255,153,0.08); color: var(--ok); border: 1px solid rgba(136,255,153,0.3); }
+.unverify-btn{ background: rgba(255,229,102,0.06); color: var(--accent); border: 1px solid rgba(255,229,102,0.3); }
 
 /* ─── Verified badge ──────────────────────────────────── */
-.verified-badge {
-  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
-  padding: 2px 6px; border: 1px solid;
-  display: inline-flex; align-items: center; gap: 3px;
-}
-.verified-badge.yes { border-color: var(--ok); color: var(--ok); }
+.verified-badge { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; padding: 3px 8px; border: 1px solid; display: inline-flex; align-items: center; gap: 3px; }
+.verified-badge.yes { border-color: var(--ok); color: var(--ok); text-shadow: 0 0 8px rgba(136,255,153,0.4); }
 .verified-badge.no  { border-color: var(--text-faint); color: var(--text-faint); }
 
 /* ─── Leaderboard ─────────────────────────────────────── */
 #leaderboard-wrap { max-width: 600px; margin: 0 auto; }
-.lb-header {
-  font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
-  color: var(--text-dim); padding: 0 0 10px;
-  display: grid; grid-template-columns: 36px 1fr 1fr 1fr; gap: 8px;
-}
-.lb-row {
-  display: grid; grid-template-columns: 36px 1fr 1fr 1fr;
-  gap: 8px; align-items: center; padding: 10px 0;
-  border-bottom: 1px solid var(--border); font-size: 12px;
-}
+.lb-header { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); padding: 0 0 10px; display: grid; grid-template-columns: 36px 1fr 1fr 1fr; gap: 8px; }
+.lb-row { display: grid; grid-template-columns: 36px 1fr 1fr 1fr; gap: 8px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; transition: background .15s; }
+.lb-row:hover { background: rgba(255,255,255,0.02); }
 .lb-rank { font-family: var(--font-d); color: var(--text-dim); font-size: 16px; }
-.lb-rank.top1 { color: var(--accent); }
+.lb-rank.top1 { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
 .lb-rank.top2 { color: #C0C0C0; }
 .lb-rank.top3 { color: #CD7F32; }
 .lb-name { display: flex; align-items: center; gap: 6px; font-family: var(--font-d); }
 .lb-avatar { font-size: 16px; }
 .lb-score { color: var(--accent); font-family: var(--font-d); text-align: right; }
 .lb-acc { color: var(--text-dim); text-align: right; font-size: 11px; }
-.lb-me { background: rgba(255,229,102,0.05); }
+.lb-me { background: rgba(255,229,102,0.04); }
+
+/* ─── Level leaderboard modal ─────────────────────────────── */
+.lb-modal-bg { position: fixed; inset: 0; background: rgba(10,10,20,0.92); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px; backdrop-filter: blur(4px); }
+.lb-modal-box { background: var(--bg-panel); border: 1px solid var(--border); width: 100%; max-width: 420px; padding: 28px 24px 22px; display: flex; flex-direction: column; gap: 4px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04); }
+.lb-modal-title { font-family: var(--font-d); font-size: 18px; letter-spacing: 2px; color: var(--text); }
+.lb-modal-sub { font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 14px; }
+.lb-modal-header { display: grid; grid-template-columns: 36px 1fr auto; gap: 8px; padding: 0 0 8px; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-dim); border-bottom: 1px solid var(--border); }
+.lb-modal-row { display: grid; grid-template-columns: 36px 1fr auto; gap: 8px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; transition: background .15s; }
+.lb-modal-row:hover { background: rgba(255,255,255,0.02); }
+.lb-modal-me { background: rgba(255,229,102,0.04); margin: 0 -24px; padding: 9px 24px; }
+.lb-modal-rank { font-family: var(--font-d); font-size: 15px; color: var(--text-dim); }
+.lb-modal-score { font-family: var(--font-d); color: var(--accent); font-size: 15px; }
+.lb-modal-close { align-self: flex-end; margin-top: 18px; padding: 8px 22px; background: var(--accent); border: none; color: #0a0a0f; font-family: var(--font-d); font-size: 12px; letter-spacing: 2px; cursor: pointer; transition: opacity .15s, box-shadow .15s; box-shadow: 0 0 16px rgba(255,229,102,0.25); }
+.lb-modal-close:hover { opacity: 0.85; box-shadow: 0 0 24px rgba(255,229,102,0.4); }
 
 /* ─── Published badge ─────────────────────────────────── */
-.pub-badge {
-  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
-  padding: 2px 6px; border: 1px solid;
-}
+.pub-badge { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; padding: 3px 8px; border: 1px solid; }
 .pub-badge.published { border-color: var(--ok); color: var(--ok); }
 .pub-badge.draft { border-color: var(--text-faint); color: var(--text-faint); }
 </style>
@@ -222,7 +258,7 @@ html, body {
 
 <!-- Top bar -->
 <div id="topbar">
-  <div class="logo">Ze<span>Bongo</span></div>
+  <a class="logo" href="menu.html" title="Menu">Ze<span>Bongo</span></a>
   <div class="topbar-spacer"></div>
   <div class="currency-badge">🪙 <span id="coins">—</span></div>
   <button class="profile-btn" onclick="window.location.href='profile.html'">
@@ -285,6 +321,7 @@ import {
   difficultyLabel, difficultyColor, tsToDate, unpublishLevel, publishLevel,
   deleteLevel, isAdminPlayer, verifyLevel, unverifyLevel, getUnverifiedLevels,
   titleDisplay, searchPlayers, toggleLike, getLikedLevels,
+  getLeaderboard, getPlayerRankOnLevel,
 } from './js/firebase.js';
 import { requireAuth } from './js/auth.js';
 
@@ -464,40 +501,46 @@ function levelCard(l) {
   }
 
   const isLiked = likedSet.has(l.id);
-  const speedTag  = (l.noteSpeed && l.noteSpeed !== 1.0) ? `<span title="Note speed">▶ ${l.noteSpeed}×</span>` : '';
-  const hpTag     = (l.hpMode   && l.hpMode    !== 'Normal') ? `<span title="HP mode">${l.hpMode}</span>` : '';
-  const countTag  = l.noteCount ? `<span title="Note count">♩ ${l.noteCount.toLocaleString()}</span>` : '';
+  const speedTag  = (l.noteSpeed && l.noteSpeed !== 1.0) ? `<span title="Note speed"><span class="card-meta-label">Speed:</span> ${l.noteSpeed}×</span>` : '';
+  const hpTag     = (l.hpMode   && l.hpMode    !== 'Normal') ? `<span title="HP mode"><span class="card-meta-label">HP:</span> ${l.hpMode}</span>` : '';
+  const countTag  = l.noteCount ? `<span title="Note count"><span class="card-meta-label">Notes:</span> ${l.noteCount.toLocaleString()}</span>` : '';
   const durSec    = l.durationBeats && l.bpm ? Math.round((l.durationBeats / l.bpm) * 60) : 0;
-  const durTag    = durSec > 0 ? `<span title="Map length">⏱ ${Math.floor(durSec/60)}:${String(durSec%60).padStart(2,'0')}</span>` : '';
+  const durTag    = durSec > 0 ? `<span title="Map length"><span class="card-meta-label">Length:</span> ${Math.floor(durSec/60)}:${String(durSec%60).padStart(2,'0')}</span>` : '';
 
   el.innerHTML = `
     <div class="card-diff-bar" style="background:${color}"></div>
-    <div style="padding-left:8px">
+    <div style="padding-left:10px">
       <div class="level-card-header">
         <div class="card-title">${esc(l.title)}</div>
         <div class="card-diff" style="color:${color}">${diff}</div>
       </div>
       <div class="card-artist">${esc(l.artist)}</div>
       <div class="card-creator">by <span>${esc(l.creatorUsername||'Unknown')}</span></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center">
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;align-items:center">
         ${isMine ? `<span class="pub-badge ${l.isPublished?'published':'draft'}">${l.isPublished?'Live':'Draft'}</span>` : ''}
         ${verifiedBadge}
       </div>
       <div class="card-meta">
-        <span>▶ ${(l.playCount||0).toLocaleString()}</span>
-        <button class="card-like-btn ${isLiked ? 'liked' : ''}" data-level-id="${l.id}" title="Like this map">
-          ${isLiked ? '♥' : '♡'} <span class="like-count">${(l.likeCount||0).toLocaleString()}</span>
-        </button>
-        <span>♩ ${l.bpm} BPM</span>
+        <span><span class="card-meta-label">Plays:</span> ${(l.playCount||0).toLocaleString()}</span>
+        <span><span class="card-meta-label">BPM:</span> ${l.bpm}</span>
         ${durTag}
         ${countTag}
         ${speedTag}
         ${hpTag}
       </div>
+      <div class="card-like-row">
+        <button class="card-like-btn ${isLiked ? 'liked' : ''}" data-level-id="${l.id}" title="Like this map">
+          <span class="card-like-heart">${isLiked ? '♥' : '♡'}</span>
+          <span class="like-count">${(l.likeCount||0).toLocaleString()}</span>
+          <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.7">Like</span>
+        </button>
+        ${l.audioUrl ? `<button class="card-preview-btn" data-preview-id="${l.id}" data-audio-url="${esc(l.audioUrl)}" title="Preview song">▶ Preview</button>` : ''}
+      </div>
       <div class="card-actions">
         <div class="card-row">
           <button class="card-btn play-btn" onclick="playLevel('${l.id}')">Play</button>
           ${isMine ? `<button class="card-btn edit-btn" onclick="editLevel('${l.id}')">Edit</button>` : ''}
+          <button class="card-btn lb-btn" onclick="showLevelLeaderboard('${l.id}','${esc(l.title)}')">Scores</button>
         </div>
         ${row2}
         ${row3}
@@ -514,9 +557,9 @@ function levelCard(l) {
       const nowLiked = await toggleLike(currentUser.uid, l.id);
       if (nowLiked) { likedSet.add(l.id); } else { likedSet.delete(l.id); }
       btn.classList.toggle('liked', nowLiked);
-      btn.innerHTML = `${nowLiked ? '♥' : '♡'} <span class="like-count">${
+      btn.innerHTML = `<span class="card-like-heart">${nowLiked ? '♥' : '♡'}</span> <span class="like-count">${
         ((nowLiked ? (l.likeCount||0)+1 : (l.likeCount||0)-1)).toLocaleString()
-      }</span>`;
+      }</span> <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.7">Like</span>`;
       // Keep local count in sync for subsequent toggles
       l.likeCount = nowLiked ? (l.likeCount||0)+1 : Math.max(0,(l.likeCount||0)-1);
     } catch (_) {}
@@ -651,15 +694,116 @@ window.onPlayerSearch = (val) => {
 // ─── Helpers ────────────────────────────────────────────────────────
 function avatarEmoji(id) {
   const map = { default: '🥁', avatar_fire: '🔥', avatar_electric: '⚡', avatar_ice: '❄️',
-    avatar_cosmic: '🌌', avatar_ghost: '👻', avatar_skull: '💀', avatar_crown: '👑' };
+    avatar_cosmic: '🌌', avatar_ghost: '👻', avatar_skull: '💀', avatar_crown: '👑',
+    avatar_robot: '🤖', avatar_alien: '👾', avatar_dragon: '🐉', avatar_ninja: '🥷',
+    avatar_demon: '😈', avatar_angel: '😇', avatar_cat: '🐱', avatar_dj: '🎧',
+    avatar_reaper: '☠️', avatar_star: '🌟' };
   return map[id] || '🥁';
 }
 function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ─── Level Leaderboard modal ────────────────────────────────────────
+window.showLevelLeaderboard = async (levelId, title) => {
+  // Build and show a loading modal immediately
+  const modal = document.createElement('div');
+  modal.className = 'lb-modal-bg';
+  modal.innerHTML = `
+    <div class="lb-modal-box">
+      <div class="lb-modal-title">${esc(title)}</div>
+      <div class="lb-modal-sub">Leaderboard</div>
+      <div id="lb-modal-body"><div class="state-msg"><div class="spinner"></div>Loading…</div></div>
+      <button class="lb-modal-close" onclick="this.closest('.lb-modal-bg').remove()">Close</button>
+    </div>
+  `;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+
+  try {
+    const [entries, myRank] = await Promise.all([
+      getLeaderboard(levelId, 15),
+      getPlayerRankOnLevel(levelId, currentUser.uid),
+    ]);
+    const body = document.getElementById('lb-modal-body');
+    if (!entries.length) {
+      body.innerHTML = `<div class="state-msg" style="padding:24px 0">No scores yet — be the first!</div>`;
+      return;
+    }
+    body.innerHTML = `
+      <div class="lb-modal-header">
+        <span>#</span><span>Player</span><span style="text-align:right">Score</span>
+      </div>
+      ${entries.map(e => {
+        const isMe = e.uid === currentUser.uid;
+        const rankMedal = e.rank === 1 ? '🥇' : e.rank === 2 ? '🥈' : e.rank === 3 ? '🥉' : e.rank;
+        return `<div class="lb-modal-row${isMe ? ' lb-modal-me' : ''}">
+          <span class="lb-modal-rank">${rankMedal}</span>
+          <span>${esc(e.username)}${isMe ? ' <span style="color:var(--accent);font-size:10px">◀ you</span>' : ''}</span>
+          <span class="lb-modal-score">${String(e.score).padStart(6,'0')}</span>
+        </div>`;
+      }).join('')}
+      ${myRank && myRank.rank > 15
+        ? `<div style="margin-top:10px;font-size:12px;letter-spacing:1px;color:var(--accent);text-align:center">Your rank: #${myRank.rank}</div>`
+        : ''}
+    `;
+  } catch(e) {
+    const body = document.getElementById('lb-modal-body');
+    if (body) body.innerHTML = `<div class="state-msg">Error: ${esc(e.message)}</div>`;
+  }
+};
+
 // ─── Initial load ────────────────────────────────────────────────────
 loadLevels();
+
+// ─── Song preview ────────────────────────────────────────────────────
+// One global Audio instance; only one song plays at a time.
+let _previewAudio = null;
+let _previewBtn   = null; // the currently-playing button
+
+function stopPreview() {
+  if (_previewAudio) {
+    _previewAudio.pause();
+    _previewAudio.src = '';
+    _previewAudio = null;
+  }
+  if (_previewBtn) {
+    _previewBtn.classList.remove('playing');
+    _previewBtn.textContent = '▶ Preview';
+    _previewBtn = null;
+  }
+}
+
+// Event delegation — works even after grid re-renders
+document.getElementById('level-grid').addEventListener('click', e => {
+  const btn = e.target.closest('.card-preview-btn');
+  if (!btn) return;
+  e.stopPropagation();
+
+  // Clicking the currently-playing button stops it
+  if (_previewBtn === btn) { stopPreview(); return; }
+
+  // Stop whatever was playing before
+  stopPreview();
+
+  const url = btn.dataset.audioUrl;
+  if (!url) return;
+
+  _previewAudio = new Audio(url);
+  _previewAudio.volume = 0.6;
+  _previewAudio.play().catch(() => {});
+  _previewAudio.addEventListener('ended', stopPreview);
+  _previewAudio.addEventListener('error', stopPreview);
+
+  _previewBtn = btn;
+  btn.classList.add('playing');
+  btn.textContent = '■ Stop';
+});
+
+// Stop preview when navigating away (play button, edit, etc.)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopPreview();
+});
 </script>
 </body>
 </html>

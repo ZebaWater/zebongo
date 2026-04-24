@@ -56,14 +56,14 @@ a { color: var(--skin-accent); text-decoration: none; }
 .online-dot.online { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
 
 .name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.name { font-family: var(--font-d); font-size: 26px; line-height: 1; letter-spacing: 2px; }
+.name { font-family: var(--font-d); font-size: 28px; line-height: 1; letter-spacing: 2px; }
 .pronouns { font-size: 10px; color: var(--text-faint); letter-spacing: 2px; }
 .title-line {
   font-size: 11px; letter-spacing: 3px; color: var(--skin-accent);
   text-transform: uppercase; margin-top: 4px;
 }
 .meta-line {
-  font-size: 11px; letter-spacing: 2px; color: var(--text-dim); margin-top: 8px;
+  font-size: 13px; letter-spacing: 1.5px; color: var(--text-dim); margin-top: 8px;
   display: flex; gap: 12px; flex-wrap: wrap;
 }
 .meta-line span { display: inline-flex; align-items: center; gap: 4px; }
@@ -81,6 +81,22 @@ a { color: var(--skin-accent); text-decoration: none; }
 .avatar-wrap.border_crimson .avatar { border-color: #FF4D6D; box-shadow: 0 0 16px rgba(255,77,109,0.5); }
 .avatar-wrap.border_void .avatar    { border-color: #B47DFF; box-shadow: 0 0 16px rgba(180,125,255,0.5); }
 .avatar-wrap.border_neon .avatar    { border-color: #00FF99; box-shadow: 0 0 14px rgba(0,255,153,0.5); animation: neonPulse 1.6s ease-in-out infinite alternate; }
+.avatar-wrap.border_ice .avatar     { border-color: #88DDFF; box-shadow: 0 0 16px rgba(136,221,255,0.5); }
+.avatar-wrap.border_rainbow .avatar { border-width: 3px; border-style: solid; animation: rainbowBorder 3s linear infinite; }
+@keyframes rainbowBorder {
+  0%   { border-color: #FF4D6D; box-shadow: 0 0 16px rgba(255,77,109,0.6); }
+  25%  { border-color: #FFE566; box-shadow: 0 0 16px rgba(255,229,102,0.6); }
+  50%  { border-color: #4DC4FF; box-shadow: 0 0 16px rgba(77,196,255,0.6); }
+  75%  { border-color: #B47DFF; box-shadow: 0 0 16px rgba(180,125,255,0.6); }
+  100% { border-color: #FF4D6D; box-shadow: 0 0 16px rgba(255,77,109,0.6); }
+}
+.avatar-wrap.border_plasma .avatar  { border-color: #FF44FF; animation: plasmaFlicker 2s ease-in-out infinite alternate; }
+@keyframes plasmaFlicker {
+  0%   { box-shadow: 0 0 20px rgba(255,68,255,0.6), 0 0 40px rgba(255,68,255,0.2); border-color: #FF44FF; }
+  50%  { box-shadow: 0 0 24px rgba(100,68,255,0.7), 0 0 48px rgba(100,68,255,0.2); border-color: #6644FF; }
+  100% { box-shadow: 0 0 20px rgba(255,68,255,0.6), 0 0 40px rgba(255,68,255,0.2); border-color: #FF44FF; }
+}
+.avatar-wrap.border_ghost .avatar   { border-color: rgba(255,255,255,0.15); box-shadow: 0 0 20px rgba(255,255,255,0.08), inset 0 0 20px rgba(255,255,255,0.04); }
 @keyframes neonPulse { to { box-shadow: 0 0 22px rgba(0,255,153,0.9); } }
 
 /* ─── Profile effects (on card) ─── */
@@ -102,6 +118,45 @@ a { color: var(--skin-accent); text-decoration: none; }
   background-size: 200% 100%; animation: auroraShift 8s linear infinite;
 }
 @keyframes auroraShift { to { background-position: 200% 0; } }
+
+.profile-card.effect_void::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, rgba(120,0,180,0.25), transparent 70%),
+              radial-gradient(ellipse at 20% 80%, rgba(60,0,120,0.2), transparent 50%);
+  animation: voidPulse 4s ease-in-out infinite alternate;
+}
+@keyframes voidPulse {
+  0%   { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 1;   transform: scale(1.04); }
+}
+.profile-card.effect_rain::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0px, transparent 8px,
+    rgba(100,255,120,0.04) 8px, rgba(100,255,120,0.04) 9px
+  );
+  animation: rainFall 1.2s linear infinite;
+}
+@keyframes rainFall { from { background-position: 0 0; } to { background-position: 0 40px; } }
+.profile-card.effect_glitch::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgba(255,0,80,0.06) 0%, transparent 30%, rgba(0,200,255,0.06) 70%, transparent 100%);
+  animation: glitchShift 0.18s steps(1) infinite;
+}
+@keyframes glitchShift {
+  0%   { transform: translateX(0);    opacity: 1; }
+  20%  { transform: translateX(-3px); opacity: 0.8; }
+  40%  { transform: translateX(3px);  opacity: 1; }
+  60%  { transform: translateX(-2px); opacity: 0.9; }
+  80%  { transform: translateX(0);    opacity: 1; }
+  100% { transform: translateX(2px);  opacity: 0.85; }
+}
+.profile-card.effect_midnight::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 80% 20%, rgba(100,80,180,0.15), transparent 50%),
+              radial-gradient(ellipse at 20% 80%, rgba(20,20,60,0.3), transparent 60%);
+}
 
 /* ─── Stats grid ─── */
 .section { margin-top: 28px; }
@@ -171,6 +226,7 @@ h2 {
 <div class="wrap">
 
   <div class="topnav">
+    <a href="menu.html" style="font-family:var(--font-d);font-size:20px;letter-spacing:2px;color:var(--text);text-decoration:none;">Ze<span style="color:var(--skin-accent)">Bongo</span></a>
     <a class="back" href="menu.html">← Menu</a>
     <a class="back" id="me-link" href="profile.html">My profile →</a>
   </div>
@@ -231,6 +287,9 @@ async function render() {
   const avatarEmoji = {
     default: '🥁', avatar_fire: '🔥', avatar_electric: '⚡', avatar_ice: '❄️',
     avatar_cosmic: '🌌', avatar_ghost: '👻', avatar_skull: '💀', avatar_crown: '👑',
+    avatar_robot: '🤖', avatar_alien: '👾', avatar_dragon: '🐉', avatar_ninja: '🥷',
+    avatar_demon: '😈', avatar_angel: '😇', avatar_cat: '🐱', avatar_dj: '🎧',
+    avatar_reaper: '☠️', avatar_star: '🌟',
   }[target.avatarId] || '🥁';
 
   const hasPic = !!target.profilePicUrl;

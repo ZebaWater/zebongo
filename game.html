@@ -10,9 +10,9 @@
 
 :root {
   --skin-bg:            #0a0a0f;
-  --skin-bg-panel:      #111118;
-  --skin-bg-overlay:    rgba(10, 10, 20, 0.92);
-  --skin-border:        rgba(255,255,255,0.08);
+  --skin-bg-panel:      #0f0f1a;
+  --skin-bg-overlay:    rgba(10, 10, 20, 0.94);
+  --skin-border:        rgba(255,255,255,0.07);
   --skin-border-bright: rgba(255,255,255,0.18);
 
   --skin-text:          #e8e8f0;
@@ -20,7 +20,7 @@
   --skin-text-faint:    rgba(232,232,240,0.15);
 
   --skin-accent:        #FFE566;
-  --skin-accent-glow:   rgba(255,229,102,0.3);
+  --skin-accent-glow:   rgba(255,229,102,0.35);
 
   --skin-lane-0:        #FF4D6D;
   --skin-lane-1:        #FFB347;
@@ -46,7 +46,7 @@ html, body {
   touch-action: none;
 }
 
-/* ─── Body-level animated background so empty desktop sides aren't dead ── */
+/* ─── Body-level animated background ─────────────────── */
 body::before {
   content: '';
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
@@ -66,7 +66,28 @@ body.beat-pulse::before { animation: bodyPulse 0.25s ease-out; }
   max-width: 560px; margin: 0 auto; position: relative; z-index: 1;
 }
 
-/* ─── Side panels (desktop only) ──────────────────────────── */
+/* ─── Blurred lane-colour aura around the game area ──── */
+/* These sit OUTSIDE #app (fixed), purely decorative, desktop-only */
+.game-aura {
+  position: fixed; pointer-events: none; z-index: 0;
+  opacity: 0; transition: opacity 1s ease;
+}
+.game-aura.visible { opacity: 1; }
+#aura-left {
+  left: 0; top: 50%; transform: translateY(-50%);
+  width: calc((100vw - 560px) / 2); height: 60vh;
+  background: radial-gradient(ellipse at right, rgba(255,77,109,0.12) 0%, transparent 70%);
+  filter: blur(20px);
+}
+#aura-right {
+  right: 0; top: 50%; transform: translateY(-50%);
+  width: calc((100vw - 560px) / 2); height: 60vh;
+  background: radial-gradient(ellipse at left, rgba(180,125,255,0.12) 0%, transparent 70%);
+  filter: blur(20px);
+}
+@media (max-width: 900px) { .game-aura { display: none; } }
+
+/* ─── Side panels (desktop only) ──────────────────────── */
 .side-panel {
   position: fixed; top: 0; bottom: 0; width: calc((100vw - 560px) / 2);
   display: none; flex-direction: column; justify-content: center;
@@ -77,16 +98,38 @@ body.beat-pulse::before { animation: bodyPulse 0.25s ease-out; }
 #side-left  { left: 0; }
 #side-right { right: 0; }
 
+/* ─── LEFT: Combo ──────────────────────────────────────── */
 .side-combo-wrap {
   display: flex; flex-direction: column; align-items: center;
   transition: transform .15s ease;
 }
-.side-combo-wrap.pulse { transform: scale(1.08); }
+.side-combo-wrap.pulse { animation: comboPop .18s ease-out; }
+@keyframes comboPop {
+  0%   { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
 .side-combo-big {
   font-family: var(--skin-font-display); font-size: 96px; line-height: 1;
   color: var(--skin-accent);
-  text-shadow: 0 0 30px var(--skin-accent-glow), 0 0 60px var(--skin-accent-glow);
-  transition: color .15s, text-shadow .15s;
+  text-shadow: 0 0 40px var(--skin-accent-glow), 0 0 80px rgba(255,229,102,0.15);
+  transition: color .12s, text-shadow .12s;
+  position: relative;
+}
+/* milestone ring flash */
+.side-combo-big::after {
+  content: '';
+  position: absolute; inset: -8px; border-radius: 50%;
+  border: 2px solid transparent;
+  transition: border-color .1s, box-shadow .1s;
+}
+.side-combo-big.milestone::after {
+  border-color: var(--skin-accent);
+  box-shadow: 0 0 20px var(--skin-accent-glow), inset 0 0 20px rgba(255,229,102,0.05);
+  animation: milestoneRing .5s ease-out forwards;
+}
+@keyframes milestoneRing {
+  0%   { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
 }
 .side-combo-big.dim { color: var(--skin-text-faint); text-shadow: none; }
 .side-combo-lbl {
@@ -97,6 +140,7 @@ body.beat-pulse::before { animation: bodyPulse 0.25s ease-out; }
   font-family: var(--skin-font-display); font-size: 24px;
   letter-spacing: 3px; min-height: 28px;
   transition: opacity .4s;
+  text-shadow: 0 0 14px currentColor;
 }
 .side-judgment-last.fade { opacity: 0; }
 
@@ -105,31 +149,60 @@ body.beat-pulse::before { animation: bodyPulse 0.25s ease-out; }
   background: linear-gradient(to bottom,
     var(--skin-lane-0), var(--skin-lane-1),
     var(--skin-lane-2), var(--skin-lane-3));
-  opacity: 0.2;
+  opacity: 0.25;
+  box-shadow: 0 0 8px rgba(255,255,255,0.05);
 }
 #side-left .side-stripes  { right: 0; }
 #side-right .side-stripes { left: 0; }
 
+/* ─── RIGHT: Hit bars ──────────────────────────────────── */
 .side-hit-bars {
-  display: flex; flex-direction: column; gap: 8px; width: 110px;
+  display: flex; flex-direction: column; gap: 10px; width: 120px;
 }
 .hit-bar-row {
-  display: grid; grid-template-columns: 60px 1fr 30px;
+  display: grid; grid-template-columns: 60px 1fr 32px;
   gap: 6px; align-items: center;
   font-size: 10px; letter-spacing: 2px; color: var(--skin-text-dim);
 }
-.hit-bar-row .lbl { text-transform: uppercase; }
+.hit-bar-row .lbl { text-transform: uppercase; transition: color .1s; }
 .hit-bar-row .bar {
-  height: 4px; background: rgba(255,255,255,0.06); overflow: hidden;
+  height: 5px; background: rgba(255,255,255,0.04); overflow: hidden;
+  border-radius: 2px;
 }
-.hit-bar-row .bar > span { display: block; height: 100%; width: 0;
-  transition: width .15s ease; }
-.hit-bar-row .count { font-family: var(--skin-font-display); text-align: right; color: var(--skin-text); }
-.hit-bar-row.perfect .bar > span { background: var(--skin-accent); }
-.hit-bar-row.great   .bar > span { background: var(--skin-lane-2); }
-.hit-bar-row.good    .bar > span { background: #88FF99; }
-.hit-bar-row.bad     .bar > span { background: #FF9955; }
-.hit-bar-row.miss    .bar > span { background: #FF4455; }
+.hit-bar-row .bar > span {
+  display: block; height: 100%; width: 0;
+  transition: width .15s ease;
+  border-radius: 2px;
+}
+.hit-bar-row .count {
+  font-family: var(--skin-font-display); text-align: right;
+  color: var(--skin-text); font-size: 13px;
+  transition: color .1s;
+}
+/* Per-judgment colours + glows on bar fill */
+.hit-bar-row.perfect .lbl   { color: rgba(255,229,102,0.7); }
+.hit-bar-row.perfect .bar > span { background: var(--skin-accent); box-shadow: 0 0 6px var(--skin-accent-glow); }
+.hit-bar-row.perfect .count { color: var(--skin-accent); }
+
+.hit-bar-row.great .lbl   { color: rgba(77,196,255,0.7); }
+.hit-bar-row.great .bar > span { background: var(--skin-lane-2); box-shadow: 0 0 6px rgba(77,196,255,0.4); }
+.hit-bar-row.great .count { color: var(--skin-lane-2); }
+
+.hit-bar-row.good .lbl   { color: rgba(136,255,153,0.6); }
+.hit-bar-row.good .bar > span { background: #88FF99; box-shadow: 0 0 5px rgba(136,255,153,0.3); }
+.hit-bar-row.good .count { color: #88FF99; }
+
+.hit-bar-row.bad .lbl   { color: rgba(255,153,85,0.6); }
+.hit-bar-row.bad .bar > span { background: #FF9955; }
+.hit-bar-row.bad .count { color: #FF9955; }
+
+.hit-bar-row.miss .lbl   { color: rgba(255,68,85,0.6); }
+.hit-bar-row.miss .bar > span { background: #FF4455; box-shadow: 0 0 5px rgba(255,68,85,0.3); }
+.hit-bar-row.miss .count { color: #FF4455; }
+
+/* bump animation when count increases */
+.hit-bar-row .count.bump { animation: countBump .15s ease-out; }
+@keyframes countBump { 0%{transform:scale(1.3)} 100%{transform:scale(1)} }
 
 /* ─── Top HUD ──────────────────────────────────────────── */
 #hud-top {
@@ -139,6 +212,7 @@ body.beat-pulse::before { animation: bodyPulse 0.25s ease-out; }
   display: grid; grid-template-columns: 1fr auto 1fr;
   align-items: center; padding: 0 16px; gap: 8px;
   position: relative; z-index: 10; flex-shrink: 0;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.4);
 }
 #combo-display { display: flex; flex-direction: column; align-items: flex-start; }
 #combo-num {
@@ -155,10 +229,14 @@ body.beat-pulse::before { animation: bodyPulse 0.25s ease-out; }
 #song-artist { font-size: 9px; color: var(--skin-text-dim); letter-spacing: 2px; text-transform: uppercase; }
 
 #score-display { display: flex; flex-direction: column; align-items: flex-end; }
-#score-num { font-family: var(--skin-font-display); font-size: 22px; line-height: 1; color: var(--skin-accent); }
+#score-num {
+  font-family: var(--skin-font-display); font-size: 22px; line-height: 1;
+  color: var(--skin-accent);
+  text-shadow: 0 0 14px var(--skin-accent-glow);
+}
 #accuracy-num { font-size: 10px; color: var(--skin-text-dim); letter-spacing: 1px; }
 
-/* ─── HP bar (under top HUD) ───────────────────────────── */
+/* ─── HP bar ───────────────────────────────────────────── */
 #hp-bar {
   height: 6px; background: rgba(255,255,255,0.04);
   position: relative; overflow: hidden; flex-shrink: 0; z-index: 10;
@@ -168,15 +246,15 @@ body.beat-pulse::before { animation: bodyPulse 0.25s ease-out; }
   height: 100%; width: 70%;
   background: linear-gradient(to right, #88FF99, var(--skin-accent));
   transition: width .2s ease, background .2s ease;
-  box-shadow: 0 0 6px rgba(136,255,153,0.4);
+  box-shadow: 0 0 8px rgba(136,255,153,0.5);
 }
 #hp-bar-fill.hp-warn {
   background: linear-gradient(to right, #FF9955, var(--skin-accent));
-  box-shadow: 0 0 6px rgba(255,153,85,0.4);
+  box-shadow: 0 0 8px rgba(255,153,85,0.5);
 }
 #hp-bar-fill.hp-danger {
   background: #FF4455;
-  box-shadow: 0 0 10px rgba(255,68,85,0.6);
+  box-shadow: 0 0 12px rgba(255,68,85,0.7);
   animation: hpPulse 0.6s ease-in-out infinite alternate;
 }
 @keyframes hpPulse { to { opacity: 0.6; } }
@@ -185,37 +263,38 @@ body.beat-pulse::before { animation: bodyPulse 0.25s ease-out; }
 #game-area { flex: 1; position: relative; overflow: hidden; min-height: 0; }
 #game-canvas { display: block; position: absolute; inset: 0; }
 
-/* ─── Progress bar ──────────────────────────────────────── */
+/* ─── Progress bar ─────────────────────────────────────── */
 #progress-bar {
   position: absolute; bottom: 0; left: 0; height: 3px;
-  background: var(--skin-accent); width: 0;
-  transition: width 0.1s linear; z-index: 5;
-  box-shadow: 0 0 8px var(--skin-accent-glow);
+  background: linear-gradient(to right, var(--skin-lane-0), var(--skin-lane-1), var(--skin-lane-2), var(--skin-lane-3));
+  width: 0; transition: width 0.1s linear; z-index: 5;
+  box-shadow: 0 0 10px rgba(255,229,102,0.5);
 }
 
-/* ─── Pause button ──────────────────────────────────────── */
+/* ─── Pause / back buttons ─────────────────────────────── */
 #btn-pause {
   position: absolute; top: 10px; right: 10px;
-  padding: 6px 14px; background: rgba(17,17,24,0.8);
+  padding: 6px 14px; background: rgba(15,15,26,0.9);
   border: 1px solid var(--skin-border); color: var(--skin-text-dim);
   font-family: var(--skin-font-mono); font-size: 10px;
   letter-spacing: 2px; text-transform: uppercase;
   cursor: pointer; opacity: 0; pointer-events: none;
-  transition: opacity .2s; z-index: 10;
+  transition: opacity .2s, border-color .15s, color .15s; z-index: 10;
 }
 #btn-pause.visible { opacity: 1; pointer-events: all; }
+#btn-pause:hover { border-color: var(--skin-border-bright); color: var(--skin-text); }
 
-/* ─── Back button ───────────────────────────────────────── */
 #btn-back {
   position: absolute; top: 10px; left: 10px;
-  padding: 6px 12px; background: rgba(17,17,24,0.8);
+  padding: 6px 12px; background: rgba(15,15,26,0.9);
   border: 1px solid var(--skin-border); color: var(--skin-text-dim);
   font-family: var(--skin-font-mono); font-size: 10px;
   letter-spacing: 2px; cursor: pointer; z-index: 10;
+  transition: border-color .15s, color .15s;
 }
 #btn-back:hover { border-color: var(--skin-border-bright); color: var(--skin-text); }
 
-/* ─── Touch zones ───────────────────────────────────────── */
+/* ─── Touch zones ──────────────────────────────────────── */
 #touch-zones {
   position: absolute; bottom: 0; left: 0; right: 0; height: 100px;
   display: grid; grid-template-columns: repeat(4, 1fr);
@@ -232,66 +311,79 @@ body.beat-pulse::before { animation: bodyPulse 0.25s ease-out; }
   border-top: 1px solid var(--skin-border);
   display: grid; grid-template-columns: repeat(4, 1fr);
   align-items: center; flex-shrink: 0; position: relative; z-index: 10;
+  box-shadow: 0 -2px 20px rgba(0,0,0,0.3);
 }
 .lane-indicator {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 10px 0; transition: background 0.06s; cursor: pointer;
-  border-right: 1px solid var(--skin-border);
+  padding: 10px 0; transition: background 0.08s;
+  cursor: pointer; border-right: 1px solid var(--skin-border);
 }
 .lane-indicator:last-child { border-right: none; }
 .lane-indicator.active { background: rgba(255,255,255,0.04); }
-.lane-key { font-family: var(--skin-font-display); font-size: 20px; line-height: 1; transition: color 0.06s; }
-.lane-dot { width: 6px; height: 6px; border-radius: 50%; transition: opacity .06s, transform .06s; opacity: 0.4; }
-.lane-indicator.active .lane-dot { opacity: 1; transform: scale(1.4); }
-.lane-0 .lane-key, .lane-0.active .lane-dot { color: var(--skin-lane-0); background: var(--skin-lane-0); }
-.lane-1 .lane-key, .lane-1.active .lane-dot { color: var(--skin-lane-1); background: var(--skin-lane-1); }
-.lane-2 .lane-key, .lane-2.active .lane-dot { color: var(--skin-lane-2); background: var(--skin-lane-2); }
-.lane-3 .lane-key, .lane-3.active .lane-dot { color: var(--skin-lane-3); background: var(--skin-lane-3); }
+.lane-key { font-family: var(--skin-font-display); font-size: 20px; line-height: 1; transition: color 0.06s, text-shadow .06s; }
+.lane-dot { width: 6px; height: 6px; border-radius: 50%; transition: opacity .06s, transform .06s, box-shadow .06s; opacity: 0.4; }
+.lane-indicator.active .lane-dot { opacity: 1; transform: scale(1.5); }
+.lane-0 .lane-key { color: var(--skin-lane-0); }
+.lane-1 .lane-key { color: var(--skin-lane-1); }
+.lane-2 .lane-key { color: var(--skin-lane-2); }
+.lane-3 .lane-key { color: var(--skin-lane-3); }
+.lane-0.active .lane-key { text-shadow: 0 0 12px var(--skin-lane-0); }
+.lane-1.active .lane-key { text-shadow: 0 0 12px var(--skin-lane-1); }
+.lane-2.active .lane-key { text-shadow: 0 0 12px var(--skin-lane-2); }
+.lane-3.active .lane-key { text-shadow: 0 0 12px var(--skin-lane-3); }
 .lane-0 .lane-dot { background: var(--skin-lane-0); }
 .lane-1 .lane-dot { background: var(--skin-lane-1); }
 .lane-2 .lane-dot { background: var(--skin-lane-2); }
 .lane-3 .lane-dot { background: var(--skin-lane-3); }
+.lane-0.active .lane-dot { box-shadow: 0 0 8px var(--skin-lane-0); }
+.lane-1.active .lane-dot { box-shadow: 0 0 8px var(--skin-lane-1); }
+.lane-2.active .lane-dot { box-shadow: 0 0 8px var(--skin-lane-2); }
+.lane-3.active .lane-dot { box-shadow: 0 0 8px var(--skin-lane-3); }
 
-/* ─── Overlay (tap-to-start) ─────────────────────────────── */
+/* ─── Start overlay ─────────────────────────────────────── */
 #overlay {
   position: absolute; inset: 0; background: var(--skin-bg-overlay);
   display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 18px; z-index: 20; transition: opacity 0.3s;
   cursor: pointer;
+  backdrop-filter: blur(2px);
 }
 #overlay.hidden { opacity: 0; pointer-events: none; }
-.overlay-logo { font-family: var(--skin-font-display); font-size: 48px; letter-spacing: 4px; }
-.overlay-logo span { color: var(--skin-accent); }
+.overlay-logo { font-family: var(--skin-font-display); font-size: 48px; letter-spacing: 4px; text-shadow: 0 0 30px rgba(255,229,102,0.2); }
+.overlay-logo span { color: var(--skin-accent); text-shadow: 0 0 20px var(--skin-accent-glow); }
 .overlay-tagline { font-size: 10px; letter-spacing: 4px; color: var(--skin-text-dim); text-transform: uppercase; }
 .overlay-keys { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
 .key-chip {
   width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
   border: 1px solid var(--skin-border-bright); border-radius: 6px;
   font-family: var(--skin-font-display); font-size: 16px;
+  transition: box-shadow .2s;
 }
-.k0 { color: var(--skin-lane-0); border-color: var(--skin-lane-0); }
-.k1 { color: var(--skin-lane-1); border-color: var(--skin-lane-1); }
-.k2 { color: var(--skin-lane-2); border-color: var(--skin-lane-2); }
-.k3 { color: var(--skin-lane-3); border-color: var(--skin-lane-3); }
+.k0 { color: var(--skin-lane-0); border-color: var(--skin-lane-0); box-shadow: 0 0 8px rgba(255,77,109,0.2); }
+.k1 { color: var(--skin-lane-1); border-color: var(--skin-lane-1); box-shadow: 0 0 8px rgba(255,179,71,0.2); }
+.k2 { color: var(--skin-lane-2); border-color: var(--skin-lane-2); box-shadow: 0 0 8px rgba(77,196,255,0.2); }
+.k3 { color: var(--skin-lane-3); border-color: var(--skin-lane-3); box-shadow: 0 0 8px rgba(180,125,255,0.2); }
 
 .tap-hint {
   margin-top: 12px; font-family: var(--skin-font-display);
   font-size: 13px; letter-spacing: 4px; color: var(--skin-accent);
   animation: tapHintPulse 1.2s ease-in-out infinite alternate;
+  text-shadow: 0 0 14px var(--skin-accent-glow);
 }
 @keyframes tapHintPulse {
-  from { opacity: 0.45; transform: scale(1); }
-  to   { opacity: 1;    transform: scale(1.04); }
+  from { opacity: 0.45; transform: scale(1); text-shadow: 0 0 8px var(--skin-accent-glow); }
+  to   { opacity: 1;    transform: scale(1.04); text-shadow: 0 0 22px var(--skin-accent-glow); }
 }
 
-/* ─── Retry fallback button (only shown on old devices) ─── */
+/* ─── Retry fallback button ─────────────────────────────── */
 .btn-start {
   padding: 12px 40px; background: var(--skin-accent);
   border: none; color: #0a0a0f;
   font-family: var(--skin-font-display); font-size: 16px; letter-spacing: 3px;
-  cursor: pointer; transition: opacity .12s, transform .1s;
+  cursor: pointer; transition: opacity .12s, transform .1s, box-shadow .15s;
+  box-shadow: 0 0 20px rgba(255,229,102,0.25);
 }
-.btn-start:hover  { opacity: 0.87; }
+.btn-start:hover  { opacity: 0.87; box-shadow: 0 0 30px rgba(255,229,102,0.45); }
 .btn-start:active { transform: scale(0.97); }
 
 /* ─── Results overlay ───────────────────────────────────── */
@@ -300,45 +392,47 @@ body.beat-pulse::before { animation: bodyPulse 0.25s ease-out; }
   display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 8px; z-index: 20;
   opacity: 0; pointer-events: none; transition: opacity 0.4s;
+  backdrop-filter: blur(3px);
 }
 #results.visible { opacity: 1; pointer-events: all; }
-#results.failed { background: rgba(30, 5, 10, 0.95); }
-#results.failed .results-title { color: #FF4455; text-shadow: 0 0 20px rgba(255,68,85,0.5); }
+#results.failed { background: rgba(25, 4, 8, 0.96); }
+#results.failed .results-title { color: #FF4455; text-shadow: 0 0 28px rgba(255,68,85,0.6); }
 .results-title {
   font-family: var(--skin-font-display); font-size: 28px;
   letter-spacing: 4px; color: var(--skin-accent);
-  text-shadow: 0 0 20px var(--skin-accent-glow);
+  text-shadow: 0 0 24px var(--skin-accent-glow);
 }
-.results-score { font-family: var(--skin-font-display); font-size: 40px; }
+.results-score { font-family: var(--skin-font-display); font-size: 40px; text-shadow: 0 0 16px var(--skin-accent-glow); color: var(--skin-accent); }
 .results-accuracy { font-size: 14px; color: var(--skin-text-dim); letter-spacing: 2px; }
 .results-maxcombo { font-size: 12px; color: var(--skin-text-dim); letter-spacing: 2px; }
 .results-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; margin-top: 8px; }
 .results-cell { text-align: center; }
 .results-cell-label { font-size: 8px; letter-spacing: 2px; color: var(--skin-text-dim); text-transform: uppercase; margin-bottom: 3px; }
 .results-cell-val { font-family: var(--skin-font-display); font-size: 18px; }
-.rc-perfect { color: var(--skin-accent); }
-.rc-great   { color: var(--skin-lane-2); }
+.rc-perfect { color: var(--skin-accent); text-shadow: 0 0 10px var(--skin-accent-glow); }
+.rc-great   { color: var(--skin-lane-2); text-shadow: 0 0 10px rgba(77,196,255,0.4); }
 .rc-good    { color: #88FF99; }
 .rc-bad     { color: #FF9955; }
 .rc-miss    { color: #FF4455; }
 
-/* ─── Reward banner (shown in results) ──────────────────── */
+/* ─── Reward banner ─────────────────────────────────────── */
 #reward-banner {
   font-size: 12px; letter-spacing: 2px; color: var(--skin-accent);
-  background: rgba(255,229,102,0.08); border: 1px solid rgba(255,229,102,0.2);
+  background: rgba(255,229,102,0.07); border: 1px solid rgba(255,229,102,0.22);
   padding: 8px 20px; text-align: center; display: none;
+  box-shadow: 0 0 14px rgba(255,229,102,0.1);
 }
 #reward-banner.visible { display: block; }
 
-/* ─── Leaderboard button ────────────────────────────────── */
+/* ─── Results buttons ───────────────────────────────────── */
 .results-btns { display: flex; gap: 10px; margin-top: 8px; }
 .btn-lb {
   padding: 10px 20px; background: none;
   border: 1px solid var(--skin-border-bright); color: var(--skin-text);
   font-family: var(--skin-font-display); font-size: 12px; letter-spacing: 2px;
-  cursor: pointer; transition: border-color .12s;
+  cursor: pointer; transition: border-color .15s, color .15s, box-shadow .15s;
 }
-.btn-lb:hover { border-color: var(--skin-accent); color: var(--skin-accent); }
+.btn-lb:hover { border-color: var(--skin-accent); color: var(--skin-accent); box-shadow: 0 0 14px rgba(255,229,102,0.2); }
 
 /* ─── Error screen ──────────────────────────────────────── */
 #error-screen {
@@ -357,20 +451,21 @@ body.beat-pulse::before { animation: bodyPulse 0.25s ease-out; }
 }
 #loading-screen.hidden { display: none; }
 .spinner {
-  width: 28px; height: 28px; border: 2px solid var(--skin-border);
+  width: 28px; height: 28px; border: 2px solid rgba(255,229,102,0.1);
   border-top-color: var(--skin-accent); border-radius: 50%;
   animation: spin .7s linear infinite;
+  box-shadow: 0 0 12px rgba(255,229,102,0.2);
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-label {
-  font-size: 10px; letter-spacing: 3px; color: var(--skin-text-dim); text-transform: uppercase;
-}
+.loading-label { font-size: 10px; letter-spacing: 3px; color: var(--skin-text-dim); text-transform: uppercase; }
 
 </style>
 </head>
 <body>
 
 <!-- Side decor panels (desktop only; purely visual feedback) -->
+<div class="game-aura" id="aura-left"></div>
+<div class="game-aura" id="aura-right"></div>
 <div class="side-panel" id="side-left">
   <div class="side-stripes"></div>
   <div class="side-combo-wrap" id="side-combo-wrap-left">
@@ -647,15 +742,22 @@ engine.onCombo = (combo, judgment) => {
   if (combo === 0) {
     sideComboEl.textContent = '0';
     sideComboEl.classList.add('dim');
+    sideComboEl.classList.remove('milestone');
   } else {
     sideComboEl.textContent = combo;
     sideComboEl.classList.remove('dim');
     sideComboEl.style.color = judgment ? JUDGE_COLORS[judgment.name] : '';
     sideComboWrap.classList.remove('pulse');
-    // Force reflow so the class re-triggers its transition
     void sideComboWrap.offsetWidth;
     sideComboWrap.classList.add('pulse');
-    setTimeout(() => sideComboWrap.classList.remove('pulse'), 150);
+    setTimeout(() => sideComboWrap.classList.remove('pulse'), 180);
+    // milestone ring every 50
+    if (combo % 50 === 0 && judgment?.name !== 'MISS') {
+      sideComboEl.classList.remove('milestone');
+      void sideComboEl.offsetWidth;
+      sideComboEl.classList.add('milestone');
+      setTimeout(() => sideComboEl.classList.remove('milestone'), 500);
+    }
   }
 
   // Body flash — uses the pseudo-element gradient for a cheap "beat pulse"
@@ -679,7 +781,18 @@ engine.onJudgment = (judgment) => {
   const counts = engine.counts;
   const totalTallies = counts.PERFECT + counts.GREAT + counts.GOOD + counts.BAD + counts.MISS || 1;
   for (const name of Object.keys(hitBarCells)) {
-    hitBarCells[name].textContent = counts[name];
+    const cell = hitBarCells[name];
+    const prev = parseInt(cell.textContent) || 0;
+    const next = counts[name];
+    if (next > prev) {
+      cell.textContent = next;
+      cell.classList.remove('bump');
+      void cell.offsetWidth;
+      cell.classList.add('bump');
+      setTimeout(() => cell.classList.remove('bump'), 150);
+    } else {
+      cell.textContent = next;
+    }
     const pct = counts[name] / totalTallies * 100;
     if (hitBarFills[name]) hitBarFills[name].style.width = pct + '%';
   }
@@ -756,6 +869,9 @@ async function startGame() {
   resultsEl.classList.remove('failed');
   btnPause.classList.add('visible');
   rewardBnr.classList.remove('visible');
+  // Reveal side auras
+  document.getElementById('aura-left')?.classList.add('visible');
+  document.getElementById('aura-right')?.classList.add('visible');
 
   scoreNum.textContent    = '000000';
   comboNum.textContent    = '0';

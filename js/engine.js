@@ -63,6 +63,36 @@ export const NOTE_SKINS = {
     dim:    ['#224455', '#335566', '#1A5A7A', '#336677'],
     glow: 14,
   },
+  notes_void: {
+    name: 'Void',
+    colors: ['#CC44FF', '#9922DD', '#EE88FF', '#7700BB'],
+    dim:    ['#3A0050', '#280040', '#4A1060', '#1E0038'],
+    glow: 22,
+  },
+  notes_blood: {
+    name: 'Bloodbath',
+    colors: ['#FF0022', '#CC0011', '#FF3344', '#880011'],
+    dim:    ['#550008', '#440006', '#660010', '#330006'],
+    glow: 16,
+  },
+  notes_candy: {
+    name: 'Candy',
+    colors: ['#FF77CC', '#FF99EE', '#FFBBAA', '#FF55BB'],
+    dim:    ['#662244', '#663355', '#664444', '#661133'],
+    glow: 12,
+  },
+  notes_mono: {
+    name: 'Monochrome',
+    colors: ['#FFFFFF', '#CCCCCC', '#AAAAAA', '#888888'],
+    dim:    ['#333333', '#2A2A2A', '#222222', '#1A1A1A'],
+    glow: 8,
+  },
+  notes_toxic: {
+    name: 'Toxic',
+    colors: ['#AAFF00', '#88DD00', '#CCFF44', '#66BB00'],
+    dim:    ['#2A4400', '#223800', '#334400', '#1A3000'],
+    glow: 18,
+  },
 };
 
 // Mutable palette — the engine reads from these at every render, so skin
