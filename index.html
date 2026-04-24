@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ZeBongo — Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Black+Ops+One&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0a0a0f;
+  --bg-panel:  #111118;
+  --border:    rgba(255,255,255,0.08);
+  --border-hi: rgba(255,255,255,0.18);
+  --text:      #e8e8f0;
+  --text-dim:  rgba(232,232,240,0.45);
+  --accent:    #FFE566;
+  --accent-glow: rgba(255,229,102,0.3);
+  --err:       #FF4D6D;
+  --ok:        #88FF99;
+  --lane-0: #FF4D6D; --lane-1: #FFB347; --lane-2: #4DC4FF; --lane-3: #B47DFF;
+  --font-d: 'Black Ops One', cursive;
+  --font-m: 'Share Tech Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--bg); color: var(--text);
+  font-family: var(--font-m); -webkit-font-smoothing: antialiased; user-select: none;
+}
+
+/* ─── Lane stripe bg ───────────────────────────────── */
+.bg-stripes {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+}
+.bg-stripes::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255,77,109,0.03) 0px, rgba(255,77,109,0.03) 1px,
+    transparent 1px, transparent 25%,
+    rgba(255,179,71,0.03) 25%, rgba(255,179,71,0.03) calc(25% + 1px),
+    transparent calc(25% + 1px), transparent 50%,
+    rgba(77,196,255,0.03) 50%, rgba(77,196,255,0.03) calc(50% + 1px),
+    transparent calc(50% + 1px), transparent 75%,
+    rgba(180,125,255,0.03) 75%, rgba(180,125,255,0.03) calc(75% + 1px),
+    transparent calc(75% + 1px), transparent 100%
+  );
+}
+.bg-stripes::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 40%;
+  background: linear-gradient(to top, var(--bg) 0%, transparent 100%);
+}
+
+/* ─── Card ─────────────────────────────────────────── */
+.login-wrap {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 24px 16px;
+}
+
+.logo {
+  font-family: var(--font-d); font-size: 56px; letter-spacing: 4px;
+  line-height: 1; margin-bottom: 6px;
+}
+.logo span { color: var(--accent); }
+.tagline {
+  font-size: 10px; letter-spacing: 4px; color: var(--text-dim);
+  text-transform: uppercase; margin-bottom: 40px;
+}
+
+.card {
+  width: 100%; max-width: 380px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  padding: 28px 28px 24px;
+}
+
+/* ─── Tabs ─────────────────────────────────────────── */
+.tabs {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--border); margin-bottom: 24px;
+}
+.tab {
+  padding: 10px; text-align: center;
+  font-family: var(--font-m); font-size: 11px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--text-dim);
+  border: none; border-bottom: 2px solid transparent;
+  background: none; cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ─── Fields ───────────────────────────────────────── */
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-size: 9px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px;
+}
+.field input {
+  width: 100%; height: 40px; padding: 0 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font-m); font-size: 13px; outline: none;
+  transition: border-color .15s;
+}
+.field input:focus { border-color: var(--border-hi); }
+.field input::placeholder { color: var(--text-dim); }
+
+/* ─── Error / status ───────────────────────────────── */
+.msg {
+  font-size: 11px; letter-spacing: 1px; min-height: 18px;
+  margin-bottom: 14px; text-align: center;
+}
+.msg.err { color: var(--err); }
+.msg.ok  { color: var(--ok);  }
+
+/* ─── Submit button ────────────────────────────────── */
+.btn-submit {
+  width: 100%; height: 44px;
+  font-family: var(--font-d); font-size: 15px; letter-spacing: 3px;
+  background: var(--accent); border: none; color: #0a0a0f;
+  cursor: pointer; transition: opacity .15s, transform .1s;
+  text-transform: uppercase;
+}
+.btn-submit:hover    { opacity: 0.88; }
+.btn-submit:active   { transform: scale(0.98); }
+.btn-submit:disabled { opacity: 0.4; cursor: default; }
+
+/* ─── Lane dots decoration ─────────────────────────── */
+.lane-dots {
+  display: flex; gap: 10px; margin-top: 28px;
+}
+.lane-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.ld0 { background: var(--lane-0); } .ld1 { background: var(--lane-1); }
+.ld2 { background: var(--lane-2); } .ld3 { background: var(--lane-3); }
+
+/* ─── Form panels ──────────────────────────────────── */
+.form-panel { display: none; }
+.form-panel.active { display: block; }
+
+/* ─── Loading overlay ──────────────────────────────── */
+.spinner-wrap {
+  display: none; align-items: center; justify-content: center;
+  gap: 8px; margin-top: 16px;
+  font-size: 10px; letter-spacing: 2px; color: var(--text-dim);
+}
+.spinner-wrap.visible { display: flex; }
+.spinner {
+  width: 16px; height: 16px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="bg-stripes"></div>
+
+<div class="login-wrap">
+  <div class="logo">Ze<span>Bongo</span></div>
+  <div class="tagline">4 lanes · 4 keys · no mercy</div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" id="tab-login"    onclick="switchTab('login')">Login</button>
+      <button class="tab"        id="tab-register" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <!-- Login form -->
+    <div class="form-panel active" id="panel-login">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="l-email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="msg" id="l-msg"></div>
+      <button class="btn-submit" id="l-btn" onclick="doLogin()">Enter</button>
+    </div>
+
+    <!-- Register form -->
+    <div class="form-panel" id="panel-register">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="r-name" placeholder="YourName" maxlength="20" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="r-email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="r-pass" placeholder="Min. 6 characters" autocomplete="new-password">
+      </div>
+      <div class="msg" id="r-msg"></div>
+      <button class="btn-submit" id="r-btn" onclick="doRegister()">Create Account</button>
+    </div>
+
+    <div class="spinner-wrap" id="spinner">
+      <div class="spinner"></div>
+      <span>Connecting…</span>
+    </div>
+  </div>
+
+  <div class="lane-dots">
+    <div class="lane-dot ld0"></div>
+    <div class="lane-dot ld1"></div>
+    <div class="lane-dot ld2"></div>
+    <div class="lane-dot ld3"></div>
+  </div>
+</div>
+
+<script type="module">
+import { registerUser, loginUser, onAuthChange } from './js/firebase.js';
+
+// Flag set while doRegister() is in flight. createUserWithEmailAndPassword
+// immediately fires onAuthStateChanged before updateProfile/setDoc finish,
+// so without this guard the listener redirects to menu.html early and the
+// self-heal in getPlayer writes a Player-XXXXXX fallback instead of the
+// username the user typed.
+let _registering = false;
+
+// Redirect if already logged in, but not while a registration is in flight.
+const unsub = onAuthChange(user => {
+  if (user && !_registering) { unsub(); window.location.href = 'menu.html'; }
+});
+
+window.switchTab = (tab) => {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+};
+
+function setLoading(on) {
+  document.getElementById('spinner').classList.toggle('visible', on);
+  document.getElementById('l-btn').disabled = on;
+  document.getElementById('r-btn').disabled = on;
+}
+
+function msg(id, text, type = 'err') {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg ' + type;
+}
+
+window.doLogin = async () => {
+  const email = document.getElementById('l-email').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  if (!email || !pass) return msg('l-msg', 'Fill in all fields.');
+  setLoading(true);
+  try {
+    await loginUser(email, pass);
+    window.location.href = 'menu.html';
+  } catch (e) {
+    msg('l-msg', friendlyError(e.code));
+    setLoading(false);
+  }
+};
+
+window.doRegister = async () => {
+  const name  = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const pass  = document.getElementById('r-pass').value;
+  if (!name)              return msg('r-msg', 'Enter a username.');
+  if (name.length < 3)    return msg('r-msg', 'Username must be at least 3 characters.');
+  if (!email)             return msg('r-msg', 'Enter your email.');
+  if (pass.length < 6)    return msg('r-msg', 'Password must be at least 6 characters.');
+  setLoading(true);
+  _registering = true;
+  try {
+    await registerUser(email, pass, name);
+    window.location.href = 'menu.html';
+  } catch (e) {
+    _registering = false;
+    msg('r-msg', friendlyError(e.code));
+    setLoading(false);
+  }
+};
+
+function friendlyError(code) {
+  return {
+    'auth/user-not-found':      'No account found for that email.',
+    'auth/wrong-password':      'Incorrect password.',
+    'auth/email-already-in-use':'That email is already registered.',
+    'auth/invalid-email':       'Invalid email address.',
+    'auth/weak-password':       'Password is too weak (min 6 chars).',
+    'auth/network-request-failed': 'Network error — check your connection.',
+  }[code] || 'Something went wrong. Try again.';
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const active = document.querySelector('.form-panel.active').id;
+  if (active === 'panel-login')    window.doLogin();
+  if (active === 'panel-register') window.doRegister();
+});
+</script>
+</body>
+</html>

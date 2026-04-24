@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ZeBongo — Player Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Black+Ops+One&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f; --bg-panel: #111118;
+  --border: rgba(255,255,255,0.08); --border-hi: rgba(255,255,255,0.18);
+  --text: #e8e8f0; --text-dim: rgba(232,232,240,0.45); --text-faint: rgba(232,232,240,0.25);
+  --accent: #FFE566; --ok: #88FF99; --err: #FF4D6D;
+  --font-d: 'Black Ops One', cursive; --font-m: 'Share Tech Mono', monospace;
+  /* per-profile accent — overridden by the profile's accentColor */
+  --skin-accent: #FFE566;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  min-height: 100%; background: var(--bg); color: var(--text);
+  font-family: var(--font-m); -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+a { color: var(--skin-accent); text-decoration: none; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+
+/* ─── Top nav ─── */
+.topnav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.topnav a.back {
+  font-family: var(--font-d); font-size: 14px; letter-spacing: 3px; color: var(--text-dim);
+}
+.topnav a.back:hover { color: var(--text); }
+
+/* ─── Profile header card ─── */
+.profile-card {
+  position: relative;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  padding: 28px; display: grid; grid-template-columns: 96px 1fr; gap: 20px;
+  overflow: hidden;
+}
+.avatar-wrap {
+  position: relative; width: 96px; height: 96px;
+}
+.avatar-wrap .avatar {
+  width: 96px; height: 96px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.04); border: 2px solid var(--border);
+  font-size: 48px;
+  overflow: hidden;
+}
+.avatar-wrap .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.online-dot {
+  position: absolute; bottom: 0; right: 0; width: 14px; height: 14px;
+  border-radius: 50%; background: #555; border: 2px solid var(--bg-panel);
+}
+.online-dot.online { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+
+.name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.name { font-family: var(--font-d); font-size: 26px; line-height: 1; letter-spacing: 2px; }
+.pronouns { font-size: 10px; color: var(--text-faint); letter-spacing: 2px; }
+.title-line {
+  font-size: 11px; letter-spacing: 3px; color: var(--skin-accent);
+  text-transform: uppercase; margin-top: 4px;
+}
+.meta-line {
+  font-size: 11px; letter-spacing: 2px; color: var(--text-dim); margin-top: 8px;
+  display: flex; gap: 12px; flex-wrap: wrap;
+}
+.meta-line span { display: inline-flex; align-items: center; gap: 4px; }
+.bio {
+  margin-top: 12px; font-size: 13px; line-height: 1.6; color: var(--text);
+  border-left: 2px solid var(--skin-accent); padding-left: 10px;
+}
+.admin-badge {
+  font-size: 9px; padding: 2px 6px; border: 1px solid var(--skin-accent);
+  color: var(--skin-accent); letter-spacing: 2px;
+}
+
+/* ─── Profile borders (frames around avatar) ─── */
+.avatar-wrap.border_gold .avatar    { border-color: #FFE566; box-shadow: 0 0 16px rgba(255,229,102,0.5); }
+.avatar-wrap.border_crimson .avatar { border-color: #FF4D6D; box-shadow: 0 0 16px rgba(255,77,109,0.5); }
+.avatar-wrap.border_void .avatar    { border-color: #B47DFF; box-shadow: 0 0 16px rgba(180,125,255,0.5); }
+.avatar-wrap.border_neon .avatar    { border-color: #00FF99; box-shadow: 0 0 14px rgba(0,255,153,0.5); animation: neonPulse 1.6s ease-in-out infinite alternate; }
+@keyframes neonPulse { to { box-shadow: 0 0 22px rgba(0,255,153,0.9); } }
+
+/* ─── Profile effects (on card) ─── */
+.profile-card.effect_sparkle::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15), transparent 60%),
+              radial-gradient(circle at 85% 75%, rgba(255,229,102,0.15), transparent 55%);
+  animation: sparkleDrift 10s ease-in-out infinite alternate;
+}
+@keyframes sparkleDrift { to { transform: translate(10px, 6px); } }
+.profile-card.effect_flames::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 40%;
+  background: radial-gradient(ellipse at bottom, rgba(255,100,40,0.25), transparent 70%);
+  pointer-events: none;
+}
+.profile-card.effect_aurora::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgba(255,77,109,0.1), rgba(77,196,255,0.1), rgba(180,125,255,0.1));
+  background-size: 200% 100%; animation: auroraShift 8s linear infinite;
+}
+@keyframes auroraShift { to { background-position: 200% 0; } }
+
+/* ─── Stats grid ─── */
+.section { margin-top: 28px; }
+h2 {
+  font-family: var(--font-d); font-size: 14px; letter-spacing: 3px;
+  margin-bottom: 14px; color: var(--skin-accent);
+}
+.stats {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px;
+}
+.stat {
+  background: var(--bg-panel); border: 1px solid var(--border);
+  padding: 12px 10px; text-align: center;
+}
+.stat .v { font-family: var(--font-d); font-size: 18px; color: var(--skin-accent); letter-spacing: 1px; }
+.stat .k { font-size: 9px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-top: 3px; }
+
+/* ─── Actions bar (own vs other) ─── */
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.btn {
+  padding: 9px 18px; background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font-d); font-size: 11px; letter-spacing: 2px;
+  cursor: pointer; transition: opacity .12s, background .12s;
+}
+.btn:hover { opacity: 0.82; }
+.btn.primary { background: var(--skin-accent); color: #0a0a0f; border-color: transparent; }
+.btn.err     { border-color: rgba(255,77,109,0.35); color: var(--err); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ─── State messages ─── */
+.state-msg {
+  padding: 40px 20px; text-align: center; font-size: 12px;
+  color: var(--text-dim); letter-spacing: 2px;
+}
+.spinner {
+  display: inline-block; width: 16px; height: 16px; margin-right: 8px;
+  border: 2px solid var(--border); border-top-color: var(--skin-accent);
+  border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Compose modal ─── */
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 40;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modal {
+  background: var(--bg-panel); border: 1px solid var(--border);
+  padding: 22px; max-width: 420px; width: 100%;
+}
+.modal h3 { font-family: var(--font-d); font-size: 16px; letter-spacing: 3px; margin-bottom: 14px; }
+.modal textarea {
+  width: 100%; height: 120px; background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border); color: var(--text);
+  padding: 10px; font-family: var(--font-m); font-size: 13px; resize: none;
+}
+.modal .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+.charcount { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; }
+
+.flash { font-size: 11px; letter-spacing: 1px; margin-top: 8px; min-height: 14px; }
+.flash.ok  { color: var(--ok); }
+.flash.err { color: var(--err); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="topnav">
+    <a class="back" href="menu.html">← Menu</a>
+    <a class="back" id="me-link" href="profile.html">My profile →</a>
+  </div>
+
+  <div id="content">
+    <div class="state-msg"><span class="spinner"></span>Loading profile…</div>
+  </div>
+
+</div>
+
+<script type="module">
+import { requireAuth } from './js/auth.js';
+import {
+  getPublicProfile, getPlayer, isOnline, titleDisplay,
+  sendFriendRequest, areFriends, removeFriend, sendMessage,
+  pingPresence, tsToDate, ACHIEVEMENTS,
+} from './js/firebase.js';
+
+const urlParams = new URLSearchParams(window.location.search);
+const targetUid = urlParams.get('uid');
+
+const me = await requireAuth();
+pingPresence(me.uid);
+
+if (!targetUid) {
+  document.getElementById('content').innerHTML =
+    `<div class="state-msg">No profile specified. <a href="menu.html">Back to menu</a></div>`;
+} else if (targetUid === me.uid) {
+  // Viewing ourselves — send to the editable profile page instead
+  window.location.href = 'profile.html';
+} else {
+  await render();
+}
+
+async function render() {
+  let target, myPlayer, alreadyFriends;
+  try {
+    [target, myPlayer] = await Promise.all([
+      getPublicProfile(targetUid),
+      getPlayer(me.uid),
+    ]);
+    alreadyFriends = await areFriends(me.uid, targetUid);
+  } catch (e) {
+    document.getElementById('content').innerHTML =
+      `<div class="state-msg">Error loading profile: ${esc(e.message)}</div>`;
+    return;
+  }
+  if (!target) {
+    document.getElementById('content').innerHTML =
+      `<div class="state-msg">This profile doesn't exist or was deleted.</div>`;
+    return;
+  }
+
+  const rawAccent = target.accentColor || '#FFE566';
+  const accent = /^#[0-9A-Fa-f]{3,8}$/.test(rawAccent) ? rawAccent : '#FFE566';
+  document.documentElement.style.setProperty('--skin-accent', accent);
+
+  const avatarEmoji = {
+    default: '🥁', avatar_fire: '🔥', avatar_electric: '⚡', avatar_ice: '❄️',
+    avatar_cosmic: '🌌', avatar_ghost: '👻', avatar_skull: '💀', avatar_crown: '👑',
+  }[target.avatarId] || '🥁';
+
+  const hasPic = !!target.profilePicUrl;
+  const border = target.borderId || 'border_none';
+  const effect = target.effectId || 'effect_none';
+  const onlineClass = isOnline(target) ? 'online' : '';
+  const titleStr = titleDisplay(target.equippedTitle);
+  const s = target.stats || {};
+  const fc = Math.min(100, s.bestAccuracy || 0);
+
+  // Statistics to show publicly — same set as own profile
+  const statCards = [
+    { v: (s.totalPlays||0).toLocaleString(),          k: 'Total Plays' },
+    { v: (s.totalScore||0).toLocaleString(),          k: 'Total Score' },
+    { v: fc.toFixed(2)+'%',                           k: 'Best Accuracy' },
+    { v: (s.highestCombo||0).toLocaleString(),        k: 'Highest Combo' },
+    { v: (s.totalMapsCleared||0).toLocaleString(),    k: 'Maps Cleared' },
+    { v: (s.totalFullCombo||0).toLocaleString(),      k: 'Full Combos' },
+    { v: (s.totalPerfects||0).toLocaleString(),       k: 'Perfects' },
+    { v: (s.totalMapsCreated||0).toLocaleString(),    k: 'Maps Made' },
+    { v: (target.friendCount||0).toLocaleString(),    k: 'Friends' },
+  ];
+
+  // Birthday display — only show month/day, never year, and only if opted-in
+  let birthdayStr = '';
+  if (target.birthday && target.showBirthday !== false) {
+    const [_y, m, d] = target.birthday.split('-');
+    if (m && d) {
+      const date = new Date(2000, parseInt(m) - 1, parseInt(d));
+      birthdayStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+  }
+
+  const html = `
+    <div class="profile-card ${esc(effect)}">
+      <div class="avatar-wrap ${esc(border)}">
+        <div class="avatar">${hasPic
+          ? `<img src="${esc(target.profilePicUrl)}" alt="">`
+          : avatarEmoji}</div>
+        <div class="online-dot ${onlineClass}" title="${onlineClass ? 'Recently active' : 'Offline'}"></div>
+      </div>
+      <div>
+        <div class="name-row">
+          <span class="name">${esc(target.username)}</span>
+          ${target.pronouns ? `<span class="pronouns">(${esc(target.pronouns)})</span>` : ''}
+          ${target.isAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}
+        </div>
+        ${titleStr ? `<div class="title-line">${esc(titleStr)}</div>` : ''}
+        <div class="meta-line">
+          <span>LV ${target.level || 1}</span>
+          ${target.country  ? `<span>🌍 ${esc(target.country)}</span>`                      : ''}
+          ${birthdayStr     ? `<span>🎂 ${esc(birthdayStr)}</span>`                         : ''}
+          <span>📅 Joined ${tsToDate(target.createdAt)}</span>
+          <span style="color:${onlineClass ? '#88FF99' : 'var(--text-faint)'}">
+            ${onlineClass ? '● Online' : '○ Offline'}
+          </span>
+        </div>
+        ${target.bio ? `<div class="bio">${esc(target.bio)}</div>` : ''}
+        <div class="actions">
+          ${alreadyFriends
+            ? `<button class="btn err" id="btn-remove">Remove friend</button>`
+            : `<button class="btn primary" id="btn-friend">+ Add friend</button>`}
+          <button class="btn" id="btn-msg">✉ Send message</button>
+        </div>
+        <div class="flash" id="flash"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Statistics</h2>
+      <div class="stats">
+        ${statCards.map(x => `<div class="stat"><div class="v">${x.v}</div><div class="k">${x.k}</div></div>`).join('')}
+      </div>
+    </div>
+
+    ${target.achievements?.length ? `
+      <div class="section">
+        <h2>Achievements (${target.achievements.length})</h2>
+        <div class="stats">
+          ${target.achievements.slice(0, 24).map(id => {
+            // Resolve the stored achievement ID against the catalog so we
+            // render the human-readable name (e.g. "First Beat") instead
+            // of the raw ID ("first_play"). Unknown IDs (e.g. from a
+            // future catalog version) fall back to showing the ID.
+            const ach = ACHIEVEMENTS.find(a => a.id === id);
+            const label = ach ? ach.name : id;
+            const icon  = ach ? ach.icon : '🏅';
+            return `<div class="stat"><div class="v">${icon}</div><div class="k">${esc(label)}</div></div>`;
+          }).join('')}
+        </div>
+      </div>
+    ` : ''}
+  `;
+  document.getElementById('content').innerHTML = html;
+
+  // ─── Wire buttons ─────────────────────────────────────────────────
+  const flash = (msg, kind='err') => {
+    const el = document.getElementById('flash');
+    if (!el) return;
+    el.textContent = msg; el.className = 'flash ' + kind;
+  };
+
+  document.getElementById('btn-friend')?.addEventListener('click', async (e) => {
+    if (!myPlayer) { flash('Could not load your profile — try refreshing.'); return; }
+    e.target.disabled = true;
+    try {
+      await sendFriendRequest(me.uid, targetUid, myPlayer);
+      flash('✓ Friend request sent', 'ok');
+      e.target.textContent = 'Request sent';
+    } catch (err) {
+      flash(err.message);
+      e.target.disabled = false;
+    }
+  });
+
+  document.getElementById('btn-remove')?.addEventListener('click', async (e) => {
+    if (!confirm('Remove ' + target.username + ' from your friends?')) return;
+    e.target.disabled = true;
+    try {
+      await removeFriend(me.uid, targetUid);
+      render();
+    } catch (err) {
+      flash(err.message);
+      e.target.disabled = false;
+    }
+  });
+
+  document.getElementById('btn-msg').addEventListener('click', () => {
+    if (!myPlayer) { flash('Could not load your profile — try refreshing.'); return; }
+    openCompose(target, myPlayer);
+  });
+}
+
+function openCompose(target, myPlayer) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>Message ${esc(target.username)}</h3>
+      <textarea id="msg-body" maxlength="500" placeholder="Say something friendly…"></textarea>
+      <div class="foot">
+        <span class="charcount"><span id="cc">0</span>/500</span>
+        <div>
+          <button class="btn" id="cancel">Cancel</button>
+          <button class="btn primary" id="send">Send</button>
+        </div>
+      </div>
+      <div class="flash" id="m-flash"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  const body = modal.querySelector('#msg-body');
+  body.addEventListener('input', () => modal.querySelector('#cc').textContent = body.value.length);
+  modal.querySelector('#cancel').addEventListener('click', () => modal.remove());
+  modal.querySelector('#send').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    try {
+      await sendMessage(me.uid, targetUid, myPlayer, body.value);
+      modal.querySelector('#m-flash').textContent = '✓ Sent';
+      modal.querySelector('#m-flash').className = 'flash ok';
+      setTimeout(() => modal.remove(), 800);
+    } catch (err) {
+      modal.querySelector('#m-flash').textContent = err.message;
+      modal.querySelector('#m-flash').className = 'flash err';
+      e.target.disabled = false;
+    }
+  });
+  body.focus();
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
+  }[c]));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ZeBongo — Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Black+Ops+One&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f; --bg-panel: #111118;
+  --border: rgba(255,255,255,0.08); --border-hi: rgba(255,255,255,0.18);
+  --text: #e8e8f0; --text-dim: rgba(232,232,240,0.45); --text-faint: rgba(232,232,240,0.25);
+  --accent: #FFE566; --accent-glow: rgba(255,229,102,0.3);
+  --ok: #88FF99; --err: #FF4D6D;
+  --lane-0: #FF4D6D; --lane-1: #FFB347; --lane-2: #4DC4FF; --lane-3: #B47DFF;
+  --font-d: 'Black Ops One', cursive;
+  --font-m: 'Share Tech Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  min-height: 100%; background: var(--bg); color: var(--text);
+  font-family: var(--font-m); -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+#topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 20px; background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+}
+.logo { font-family: var(--font-d); font-size: 22px; letter-spacing: 3px; line-height: 1; }
+.logo span { color: var(--accent); }
+.topbar-spacer { flex: 1; }
+.back-btn, .inbox-btn {
+  padding: 8px 16px; background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border); color: var(--text);
+  font-family: var(--font-m); font-size: 11px; letter-spacing: 2px;
+  cursor: pointer; transition: background .12s; text-transform: uppercase;
+  position: relative;
+}
+.back-btn:hover, .inbox-btn:hover { background: rgba(255,255,255,0.1); }
+.inbox-btn .badge {
+  position: absolute; top: -6px; right: -6px;
+  background: var(--err); color: white; font-size: 9px;
+  min-width: 18px; height: 18px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-d); padding: 0 5px; letter-spacing: 0;
+}
+
+.page { max-width: 840px; margin: 0 auto; padding: 24px 20px 60px; }
+
+.profile-header {
+  position: relative;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  display: grid; grid-template-columns: 110px 1fr auto; gap: 24px;
+  padding: 24px; overflow: hidden;
+}
+.profile-header.effect_sparkle::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.1), transparent 60%),
+              radial-gradient(circle at 85% 75%, rgba(255,229,102,0.1), transparent 55%);
+  animation: sparkleDrift 10s ease-in-out infinite alternate;
+}
+@keyframes sparkleDrift { to { transform: translate(10px, 6px); } }
+.profile-header.effect_flames::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 40%;
+  background: radial-gradient(ellipse at bottom, rgba(255,100,40,0.2), transparent 70%);
+  pointer-events: none;
+}
+.profile-header.effect_aurora::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgba(255,77,109,0.08), rgba(77,196,255,0.08), rgba(180,125,255,0.08));
+  background-size: 200% 100%; animation: auroraShift 8s linear infinite;
+}
+@keyframes auroraShift { to { background-position: 200% 0; } }
+
+.avatar-wrap { width: 110px; height: 110px; position: relative; }
+.avatar-wrap .avatar {
+  width: 110px; height: 110px; background: rgba(255,255,255,0.04);
+  border: 2px solid var(--border); display: flex; align-items: center;
+  justify-content: center; font-size: 54px; overflow: hidden;
+}
+.avatar-wrap .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-wrap.border_gold .avatar    { border-color: #FFE566; box-shadow: 0 0 16px rgba(255,229,102,0.5); }
+.avatar-wrap.border_crimson .avatar { border-color: #FF4D6D; box-shadow: 0 0 16px rgba(255,77,109,0.5); }
+.avatar-wrap.border_void .avatar    { border-color: #B47DFF; box-shadow: 0 0 16px rgba(180,125,255,0.5); }
+.avatar-wrap.border_neon .avatar    { border-color: #00FF99; box-shadow: 0 0 14px rgba(0,255,153,0.5); animation: neonPulse 1.6s ease-in-out infinite alternate; }
+@keyframes neonPulse { to { box-shadow: 0 0 22px rgba(0,255,153,0.9); } }
+
+.profile-info { min-width: 0; }
+.profile-username {
+  font-family: var(--font-d); font-size: 28px; line-height: 1.1; letter-spacing: 2px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.profile-username .pronouns { font-family: var(--font-m); font-size: 11px; color: var(--text-faint); letter-spacing: 1px; font-weight: normal; }
+.profile-title {
+  font-size: 11px; letter-spacing: 3px; color: var(--accent);
+  text-transform: uppercase; margin-top: 4px;
+}
+.profile-email { font-size: 11px; color: var(--text-dim); letter-spacing: 1px; margin-top: 4px; }
+.profile-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+.meta-chip {
+  font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px;
+  padding: 2px 8px; border: 1px solid var(--border);
+}
+.profile-bio {
+  margin-top: 10px; font-size: 12px; line-height: 1.5; color: var(--text);
+  border-left: 2px solid var(--accent); padding-left: 10px;
+}
+
+.profile-right {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+  min-width: 100px;
+}
+.currency-large {
+  font-family: var(--font-d); font-size: 32px; line-height: 1;
+  color: var(--accent); text-shadow: 0 0 16px var(--accent-glow);
+}
+.currency-label {
+  font-size: 10px; letter-spacing: 3px; color: var(--text-dim);
+  text-transform: uppercase; margin-bottom: 4px;
+}
+.btn-sm {
+  padding: 7px 12px; background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border); color: var(--text);
+  font-family: var(--font-m); font-size: 10px; letter-spacing: 1.5px;
+  cursor: pointer; transition: background .12s; text-transform: uppercase;
+}
+.btn-sm:hover { background: rgba(255,255,255,0.1); }
+
+.xp-bar-wrap { margin-top: 16px; padding: 12px 16px;
+  background: var(--bg-panel); border: 1px solid var(--border); }
+.xp-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.xp-level { font-family: var(--font-d); font-size: 13px; letter-spacing: 2px; color: var(--accent); }
+.xp-label { font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px; }
+.xp-bar-track { height: 4px; background: rgba(255,255,255,0.04); }
+.xp-bar-fill {
+  height: 100%; background: linear-gradient(90deg, var(--accent), #88FF99);
+  box-shadow: 0 0 6px var(--accent-glow); transition: width .4s ease;
+}
+
+.tabs {
+  display: flex; gap: 2px; margin-top: 20px; margin-bottom: 20px;
+  border-bottom: 1px solid var(--border); overflow-x: auto;
+}
+.tab {
+  flex: 1; min-width: 100px;
+  padding: 12px 16px; background: none; border: none;
+  font-family: var(--font-m); font-size: 11px; letter-spacing: 2px;
+  color: var(--text-dim); text-transform: uppercase;
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: color .12s, border-color .12s; position: relative;
+  white-space: nowrap;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab:hover:not(.active) { color: var(--text); }
+.tab .tab-badge {
+  position: absolute; top: 4px; right: 4px; background: var(--err); color: white;
+  font-size: 9px; min-width: 16px; height: 16px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; padding: 0 4px;
+  letter-spacing: 0;
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.stat-card {
+  background: var(--bg-panel); border: 1px solid var(--border);
+  padding: 16px 12px; text-align: center;
+}
+.stat-val { font-family: var(--font-d); font-size: 22px; color: var(--accent); letter-spacing: 1px; }
+.stat-label {
+  font-size: 9px; letter-spacing: 2px; color: var(--text-dim);
+  text-transform: uppercase; margin-top: 4px;
+}
+
+.ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.ach-card {
+  display: flex; gap: 10px; padding: 14px; background: var(--bg-panel);
+  border: 1px solid var(--border); transition: border-color .12s, opacity .12s;
+}
+.ach-card.locked { opacity: 0.5; }
+.ach-card.unlocked { border-color: rgba(255,229,102,0.2); }
+.ach-icon {
+  font-size: 24px; width: 40px; height: 40px; display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0;
+  background: rgba(255,229,102,0.08);
+}
+.ach-card.locked .ach-icon { background: rgba(255,255,255,0.02); }
+.ach-name { font-family: var(--font-d); font-size: 13px; letter-spacing: 1.5px; }
+.ach-desc { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; margin-top: 2px; line-height: 1.4; }
+
+.shop-section { margin-bottom: 30px; }
+.shop-section-title {
+  font-family: var(--font-d); font-size: 15px; letter-spacing: 3px;
+  color: var(--accent); margin-bottom: 12px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.shop-item {
+  background: var(--bg-panel); border: 1px solid var(--border);
+  padding: 14px 10px; text-align: center; transition: border-color .12s;
+}
+.shop-item.equipped { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
+.shop-item.owned { border-color: rgba(136,255,153,0.2); }
+.shop-preview {
+  font-size: 36px; height: 50px; display: flex; align-items: center;
+  justify-content: center; margin-bottom: 6px;
+}
+.shop-name { font-family: var(--font-d); font-size: 12px; letter-spacing: 1.5px; }
+.shop-price { font-size: 11px; color: var(--text-dim); margin: 4px 0 8px; letter-spacing: 1px; }
+.shop-btn {
+  width: 100%; height: 30px; font-family: var(--font-d); font-size: 11px;
+  letter-spacing: 2px; border: none; cursor: pointer;
+}
+.shop-btn.buy { background: var(--accent); color: #0a0a0f; }
+.shop-btn.buy:hover { opacity: 0.85; }
+.shop-btn.equip { background: rgba(136,255,153,0.15); color: var(--ok); border: 1px solid rgba(136,255,153,0.3); }
+.shop-btn.equipped-lbl { background: var(--accent); color: #0a0a0f; cursor: default; }
+
+.history-list { display: flex; flex-direction: column; gap: 6px; }
+.history-row {
+  display: grid; grid-template-columns: 1fr auto auto 24px; gap: 12px;
+  align-items: center; padding: 10px 14px;
+  background: var(--bg-panel); border: 1px solid var(--border);
+}
+.history-title { font-family: var(--font-d); font-size: 13px; }
+.history-artist { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+.history-score { font-family: var(--font-d); color: var(--accent); font-size: 16px; }
+.history-acc { font-size: 11px; color: var(--text-dim); }
+.history-fc { font-size: 18px; }
+
+.social-subtabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.social-subtab {
+  padding: 6px 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  font-family: var(--font-m); font-size: 10px; letter-spacing: 2px; color: var(--text-dim);
+  cursor: pointer; text-transform: uppercase;
+}
+.social-subtab.active { color: var(--accent); border-color: var(--accent); }
+
+.friend-row, .inbox-row {
+  display: grid; align-items: center; gap: 10px; padding: 12px;
+  background: var(--bg-panel); border: 1px solid var(--border); margin-bottom: 6px;
+}
+.friend-row { grid-template-columns: 40px 1fr auto auto; }
+.inbox-row  { grid-template-columns: 40px 1fr auto; cursor: pointer; }
+.inbox-row:hover { border-color: var(--border-hi); }
+.inbox-row.unread { border-left: 3px solid var(--accent); }
+.friend-avatar, .inbox-avatar {
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.04); font-size: 22px; border: 1px solid var(--border);
+}
+.friend-name { font-family: var(--font-d); font-size: 14px; letter-spacing: 1.5px; }
+.friend-status { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; margin-top: 2px; }
+.friend-status.online { color: var(--ok); }
+.inbox-from { font-family: var(--font-d); font-size: 13px; letter-spacing: 1.5px; }
+.inbox-preview { font-size: 11px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; max-height: 3em; overflow: hidden; }
+.inbox-time { font-size: 10px; color: var(--text-faint); letter-spacing: 1px; }
+.inbox-type-pill {
+  font-size: 8px; letter-spacing: 1.5px; padding: 2px 6px;
+  border: 1px solid var(--border-hi); margin-right: 4px;
+}
+.inbox-type-pill.friend_request { border-color: var(--ok); color: var(--ok); }
+.inbox-type-pill.message         { border-color: var(--border-hi); color: var(--text-dim); }
+
+.state-msg {
+  text-align: center; padding: 40px;
+  font-size: 11px; letter-spacing: 2px; color: var(--text-dim);
+}
+.spinner {
+  width: 24px; height: 24px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .7s linear infinite; margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 40;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modal {
+  background: var(--bg-panel); border: 1px solid var(--border);
+  padding: 24px; max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto;
+}
+.modal h3 {
+  font-family: var(--font-d); font-size: 16px; letter-spacing: 3px; margin-bottom: 14px;
+  color: var(--accent);
+}
+.field { margin-bottom: 12px; }
+.field label {
+  display: block; font-size: 10px; letter-spacing: 2px; color: var(--text-dim);
+  text-transform: uppercase; margin-bottom: 4px;
+}
+.field input, .field textarea, .field select {
+  width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font-m); font-size: 13px;
+  padding: 8px 10px; outline: none;
+}
+.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--border-hi); }
+.field textarea { resize: none; height: 74px; }
+.field .hint { font-size: 9px; color: var(--text-faint); letter-spacing: 1px; margin-top: 3px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.btn {
+  padding: 8px 16px; background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border); color: var(--text);
+  font-family: var(--font-d); font-size: 11px; letter-spacing: 2px;
+  cursor: pointer; transition: opacity .12s, background .12s;
+}
+.btn:hover { opacity: 0.85; }
+.btn.primary { background: var(--accent); color: #0a0a0f; border: none; }
+.btn.danger  { color: var(--err); border-color: rgba(255,77,109,0.3); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.flash { font-size: 11px; letter-spacing: 1px; margin-top: 8px; min-height: 14px; }
+.flash.ok  { color: var(--ok); }
+.flash.err { color: var(--err); }
+
+.upload-preview {
+  width: 80px; height: 80px; margin-top: 8px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; color: var(--text-faint);
+  overflow: hidden;
+}
+.upload-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+#toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--bg-panel); border: 1px solid var(--border);
+  padding: 10px 20px; font-size: 11px; letter-spacing: 1px;
+  z-index: 100; opacity: 0; pointer-events: none;
+  transition: opacity .3s; white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="logo">Ze<span>Bongo</span></div>
+  <div class="topbar-spacer"></div>
+  <button class="inbox-btn" onclick="showTab('social'); showSocialSub('inbox')">
+    Inbox <span class="badge" id="nav-unread-badge" style="display:none">0</span>
+  </button>
+  <button class="back-btn" onclick="window.location.href='menu.html'">← Menu</button>
+</div>
+
+<div class="page">
+
+  <div class="profile-header" id="profile-header">
+    <div class="avatar-wrap" id="avatar-wrap">
+      <div class="avatar" id="avatar-display">🥁</div>
+    </div>
+    <div class="profile-info">
+      <div class="profile-username" id="p-username">—</div>
+      <div class="profile-title"   id="p-title">—</div>
+      <div class="profile-email"   id="p-email">—</div>
+      <div class="profile-meta" id="p-meta"></div>
+      <div class="profile-bio" id="p-bio" style="display:none"></div>
+    </div>
+    <div class="profile-right">
+      <div class="currency-large" id="p-currency">—</div>
+      <div class="currency-label">Coins</div>
+      <button class="btn-sm" id="btn-edit-profile">Edit Profile</button>
+    </div>
+  </div>
+
+  <div class="xp-bar-wrap">
+    <div class="xp-row">
+      <div class="xp-level" id="xp-level">Level —</div>
+      <div class="xp-label" id="xp-progress">— / — XP</div>
+    </div>
+    <div class="xp-bar-track">
+      <div class="xp-bar-fill" id="xp-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="stats"        onclick="showTab('stats')">Stats</button>
+    <button class="tab"        data-tab="achievements" onclick="showTab('achievements')">Achievements</button>
+    <button class="tab"        data-tab="shop"         onclick="showTab('shop')">Shop</button>
+    <button class="tab"        data-tab="history"      onclick="showTab('history')">History</button>
+    <button class="tab"        data-tab="social"       onclick="showTab('social')">
+      Social <span class="tab-badge" id="social-unread-badge" style="display:none">0</span>
+    </button>
+  </div>
+
+  <div class="tab-panel active" id="tab-stats">
+    <div class="stats-grid" id="stats-grid"><div class="state-msg"><div class="spinner"></div></div></div>
+  </div>
+
+  <div class="tab-panel" id="tab-achievements">
+    <div class="ach-grid" id="ach-grid"><div class="state-msg"><div class="spinner"></div></div></div>
+  </div>
+
+  <div class="tab-panel" id="tab-shop">
+    <div id="shop-content"><div class="state-msg"><div class="spinner"></div></div></div>
+  </div>
+
+  <div class="tab-panel" id="tab-history">
+    <div class="history-list" id="history-list"><div class="state-msg"><div class="spinner"></div></div></div>
+  </div>
+
+  <div class="tab-panel" id="tab-social">
+    <div class="social-subtabs">
+      <button class="social-subtab active" data-sub="friends" onclick="showSocialSub('friends')">Friends</button>
+      <button class="social-subtab"        data-sub="inbox"   onclick="showSocialSub('inbox')">Inbox</button>
+    </div>
+    <div id="social-friends"><div class="state-msg"><div class="spinner"></div></div></div>
+    <div id="social-inbox" style="display:none"><div class="state-msg"><div class="spinner"></div></div></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { requireAuth } from './js/auth.js';
+import {
+  getPlayer, getPlayHistory, purchaseItem, equipCosmetic,
+  ACHIEVEMENTS, SHOP_ITEMS, xpToLevel, xpForNextLevel, tsToDate,
+  titleDisplay, getShopItem,
+  updateProfileFields, pingPresence, isOnline,
+  listFriends, removeFriend, acceptFriendRequest, sendMessage,
+  getInbox, markMessageRead, deleteMessage, getUnreadCount,
+} from './js/firebase.js';
+import { uploadToImgBB, tryCleanupImgBB } from './js/imgbb.js';
+
+let currentUser, player;
+const loaded = new Set(['stats']);
+
+// ─── Globals BEFORE first await ─────────────────────────────────────
+window.showTab = (tab) => {
+  document.querySelectorAll('.tabs .tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'tab-' + tab));
+  if (!loaded.has(tab)) { loaded.add(tab); renderByKey[tab]?.(); }
+};
+
+window.showSocialSub = (sub) => {
+  document.querySelectorAll('.social-subtab').forEach(b =>
+    b.classList.toggle('active', b.dataset.sub === sub));
+  document.getElementById('social-friends').style.display = sub === 'friends' ? '' : 'none';
+  document.getElementById('social-inbox').style.display   = sub === 'inbox'   ? '' : 'none';
+  if (sub === 'friends') renderFriends(); else renderInbox();
+};
+
+window.doBuy = async (itemId) => {
+  const item = getShopItem(itemId);
+  if (!item) return;
+  if ((player?.currency || 0) < item.price) { toast('Not enough coins! Need 🪙 ' + item.price); return; }
+  try {
+    await purchaseItem(currentUser.uid, itemId);
+    player = await getPlayer(currentUser.uid);
+    renderHeader(); renderShop(); toast('Purchased ' + item.name + '!');
+  } catch(e) { toast(e.message); }
+};
+
+window.doEquip = async (type, itemId) => {
+  try {
+    await equipCosmetic(currentUser.uid, type, itemId);
+    player = await getPlayer(currentUser.uid);
+    renderHeader(); renderShop();
+    toast(type === 'notes' ? 'Equipped! New skin applies next song.' : 'Equipped!');
+  } catch(e) { toast(e.message); }
+};
+
+window.doRemoveFriend = async (uid, name) => {
+  if (!confirm(`Remove ${name} from friends?`)) return;
+  try {
+    await removeFriend(currentUser.uid, uid);
+    player = await getPlayer(currentUser.uid);
+    renderHeader(); renderFriends();
+  } catch(e) { toast(e.message); }
+};
+
+// ─── Auth boot ───────────────────────────────────────────────────────
+// Extensive error reporting — if anything fails in this boot block the
+// whole page previously silently spun forever. Now every failure surfaces
+// a visible message AND logs to console.
+let bootError = null;
+try { currentUser = await requireAuth(); }
+catch (e) { bootError = 'Auth check failed: ' + (e.message || e); }
+
+if (currentUser && !bootError) {
+  try {
+    player = await getPlayer(currentUser.uid);
+    if (!player) bootError = 'Could not load or create your player document.';
+  } catch (e) {
+    console.error('getPlayer threw:', e);
+    bootError = 'Error loading your profile: ' + (e.message || e);
+  }
+  pingPresence(currentUser.uid);
+  setInterval(() => pingPresence(currentUser.uid), 60_000);
+  refreshUnreadBadge();
+  setInterval(refreshUnreadBadge, 45_000);
+}
+
+// If anything went wrong above, surface it in the stats grid instead of
+// leaving the spinner stuck. Also catches the historical case where every
+// field renders as "—" and the spinner never stops.
+if (bootError || !player) {
+  const grid = document.getElementById('stats-grid');
+  if (grid) {
+    grid.innerHTML =
+      `<div class="state-msg" style="grid-column:1/-1;color:var(--err)">
+        ${esc(bootError || 'Profile data unavailable.')}<br>
+        <span style="color:var(--text-dim);font-size:10px">
+          If this persists, sign out and back in, or check the browser console.
+        </span>
+      </div>`;
+  }
+  // At minimum, show the user's auth email so the page isn't completely
+  // empty — and use a fallback for username since player may be null.
+  const nameEl = document.getElementById('p-username');
+  if (nameEl && currentUser) {
+    nameEl.textContent = currentUser.displayName || currentUser.email || 'Unknown';
+  }
+}
+
+const renderByKey = {
+  stats: renderStats, achievements: renderAchievements,
+  shop: renderShop, history: renderHistory, social: renderSocial,
+};
+
+// ─── Header ──────────────────────────────────────────────────────────
+function renderHeader() {
+  if (!player) return;
+  const hdr = document.getElementById('profile-header');
+  hdr.className = 'profile-header ' + (player.effectId || 'effect_none');
+  const wrap = document.getElementById('avatar-wrap');
+  wrap.className = 'avatar-wrap ' + (player.borderId || 'border_none');
+
+  const av = document.getElementById('avatar-display');
+  if (player.profilePicUrl) {
+    av.innerHTML = `<img src="${esc(player.profilePicUrl)}" alt="">`;
+  } else {
+    av.textContent = avatarEmoji(player.avatarId);
+  }
+
+  const nameEl = document.getElementById('p-username');
+  nameEl.innerHTML = esc(player.username) +
+    (player.pronouns ? ` <span class="pronouns">(${esc(player.pronouns)})</span>` : '') +
+    (player.isAdmin  ? ` <span class="pronouns" style="color:var(--accent)">ADMIN</span>` : '');
+
+  document.getElementById('p-title').textContent = titleDisplay(player.equippedTitle) || 'Newcomer';
+  document.getElementById('p-email').textContent = player.email || '';
+
+  // Meta chips
+  const meta = document.getElementById('p-meta');
+  const lv = xpToLevel(player.xp || 0);
+  meta.innerHTML = [
+    `<div class="meta-chip">Joined: ${tsToDate(player.createdAt)}</div>`,
+    `<div class="meta-chip">Level ${lv}</div>`,
+    `<div class="meta-chip">${(player.stats?.totalPlays || 0)} plays</div>`,
+    `<div class="meta-chip">${(player.stats?.totalMapsCreated || 0)} maps</div>`,
+    player.country  ? `<div class="meta-chip">🌍 ${esc(player.country)}</div>` : '',
+    player.birthday && player.showBirthday !== false ? `<div class="meta-chip">🎂 ${fmtBirthday(player.birthday)}</div>` : '',
+    `<div class="meta-chip">👥 ${(player.friendCount || 0)} friends</div>`,
+  ].filter(Boolean).join('');
+
+  // Bio
+  const bio = document.getElementById('p-bio');
+  if (player.bio?.trim()) { bio.textContent = player.bio; bio.style.display = ''; }
+  else                    { bio.style.display = 'none'; }
+
+  document.getElementById('p-currency').textContent = (player.currency || 0).toLocaleString();
+
+  // XP
+  const { current, required } = xpForNextLevel(player.xp || 0);
+  document.getElementById('xp-level').textContent    = 'Level ' + lv;
+  document.getElementById('xp-progress').textContent = `${current} / ${required} XP`;
+  document.getElementById('xp-fill').style.width     = Math.min(100, current / required * 100) + '%';
+
+  // Custom accent color — validate it's a safe hex value before injecting into CSS
+  if (player.accentColor && /^#[0-9A-Fa-f]{3,8}$/.test(player.accentColor)) {
+    document.documentElement.style.setProperty('--accent', player.accentColor);
+  }
+}
+
+// Top-level render calls are wrapped in try/catch: previously a throw in
+// either render function halted the rest of the module (tab click handlers,
+// interval hooks) silently. If anything goes wrong we surface it on-page
+// and keep the page interactive.
+try { renderHeader(); }
+catch (e) {
+  console.error('renderHeader threw:', e);
+  const grid = document.getElementById('stats-grid');
+  if (grid) grid.innerHTML =
+    `<div class="state-msg" style="grid-column:1/-1;color:var(--err)">
+      renderHeader crashed: ${esc(e.message || String(e))}
+    </div>`;
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────
+function renderStats() {
+  const grid = document.getElementById('stats-grid');
+  if (!player) {
+    grid.innerHTML = '<div class="state-msg">Could not load profile data.<br>Check your Firestore security rules.</div>';
+    return;
+  }
+  const s = player.stats || {};
+  const items = [
+    { val: (s.totalPlays||0).toLocaleString(),             label: 'Total Plays'    },
+    { val: (s.totalScore||0).toLocaleString(),             label: 'Total Score'    },
+    { val: Math.min(100, s.bestAccuracy||0).toFixed(2)+'%',label: 'Best Accuracy'  },
+    { val: (s.highestCombo||0).toLocaleString(),           label: 'Highest Combo'  },
+    { val: (s.totalMapsCleared||0).toLocaleString(),       label: 'Maps Cleared'   },
+    { val: (s.totalFullCombo||0).toLocaleString(),         label: 'Full Combos'    },
+    { val: (s.totalPerfects||0).toLocaleString(),          label: 'Total Perfects' },
+    { val: (s.totalMisses||0).toLocaleString(),            label: 'Total Misses'   },
+    { val: (s.totalMapsCreated||0).toLocaleString(),       label: 'Maps Created'   },
+    { val: (player.friendCount||0).toLocaleString(),       label: 'Friends'        },
+    { val: (player.achievements||[]).length+'/'+ACHIEVEMENTS.length, label: 'Achievements' },
+  ];
+  grid.innerHTML = items.map(i =>
+    `<div class="stat-card"><div class="stat-val">${i.val}</div><div class="stat-label">${i.label}</div></div>`
+  ).join('');
+}
+try { renderStats(); }
+catch (e) {
+  console.error('renderStats threw:', e);
+  const grid = document.getElementById('stats-grid');
+  if (grid) grid.innerHTML =
+    `<div class="state-msg" style="grid-column:1/-1;color:var(--err)">
+      renderStats crashed: ${esc(e.message || String(e))}
+    </div>`;
+}
+
+// ─── Achievements ─────────────────────────────────────────────────────
+function renderAchievements() {
+  const grid = document.getElementById('ach-grid');
+  if (!player) { grid.innerHTML = '<div class="state-msg">Profile data unavailable.</div>'; return; }
+  const myAchs = player.achievements || [];
+  grid.innerHTML = ACHIEVEMENTS.map(a => {
+    const unlocked = myAchs.includes(a.id);
+    return `<div class="ach-card ${unlocked?'unlocked':'locked'}">
+      <div class="ach-icon">${a.icon}</div>
+      <div>
+        <div class="ach-name">${a.name}</div>
+        <div class="ach-desc">${a.desc}</div>
+        ${unlocked ? '<div style="font-size:9px;color:var(--ok);margin-top:4px;letter-spacing:1px">UNLOCKED</div>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Shop ─────────────────────────────────────────────────────────────
+async function renderShop() {
+  const content = document.getElementById('shop-content');
+  try { player = await getPlayer(currentUser.uid); }
+  catch (e) { content.innerHTML = `<div class="state-msg">Error: ${e.message}</div>`; return; }
+  if (!player) { content.innerHTML = '<div class="state-msg">Profile data unavailable.</div>'; return; }
+  renderHeader();
+
+  const sections = [
+    { type: 'avatar', label: 'Avatars',     field: 'unlockedAvatars',    equipped: player.avatarId },
+    { type: 'notes',  label: 'Note Skins',  field: 'unlockedNoteColors', equipped: player.noteSkinsId },
+    { type: 'title',  label: 'Titles',      field: 'unlockedTitles',     equipped: player.equippedTitle },
+    { type: 'border', label: 'Borders',     field: 'unlockedBorders',    equipped: player.borderId },
+    { type: 'effect', label: 'Effects',     field: 'unlockedEffects',    equipped: player.effectId },
+  ];
+  content.innerHTML = '';
+  sections.forEach(sec => {
+    const items = SHOP_ITEMS.filter(i => i.type === sec.type);
+    if (!items.length) return;
+    const unlocked = player[sec.field] || [];
+    const section = document.createElement('div');
+    section.className = 'shop-section';
+    section.innerHTML = `<div class="shop-section-title">${sec.label}</div>`;
+    const grid = document.createElement('div');
+    grid.className = 'shop-grid';
+    items.forEach(item => {
+      const isOwned    = unlocked.includes(item.id);
+      const isEquipped = sec.equipped === item.id;
+      const card = document.createElement('div');
+      card.className = `shop-item ${isEquipped?'equipped':isOwned?'owned':''}`;
+      card.innerHTML = `
+        <div class="shop-preview">${item.preview || '?'}</div>
+        <div class="shop-name">${esc(item.name)}</div>
+        <div class="shop-price">${item.price === 0 ? 'FREE' : '🪙 ' + item.price}</div>
+        ${isEquipped
+          ? '<button class="shop-btn equipped-lbl">Equipped</button>'
+          : isOwned
+            ? `<button class="shop-btn equip" onclick="doEquip('${sec.type}','${item.id}')">Equip</button>`
+            : `<button class="shop-btn buy" onclick="doBuy('${item.id}')">Buy</button>`}
+      `;
+      grid.appendChild(card);
+    });
+    section.appendChild(grid);
+    content.appendChild(section);
+  });
+}
+
+// ─── History ──────────────────────────────────────────────────────────
+async function renderHistory() {
+  const list = document.getElementById('history-list');
+  list.innerHTML = '<div class="state-msg"><div class="spinner"></div>Loading…</div>';
+  try {
+    const history = await getPlayHistory(currentUser.uid, 30);
+    if (!history.length) { list.innerHTML = '<div class="state-msg">No plays yet. Go play some maps!</div>'; return; }
+    list.innerHTML = history.map(h => `
+      <div class="history-row">
+        <div>
+          <div class="history-title">${esc(h.levelTitle||'Unknown')}</div>
+          <div class="history-artist">${esc(h.levelArtist||'')} · ${tsToDate(h.playedAt)}</div>
+        </div>
+        <div class="history-score">${String(h.score||0).padStart(6,'0')}</div>
+        <div class="history-acc">${Math.min(100, h.accuracy||0).toFixed(2)}%</div>
+        <div class="history-fc">${h.isFullCombo ? '💯' : ''}</div>
+      </div>
+    `).join('');
+  } catch(e) { list.innerHTML = `<div class="state-msg">Error: ${e.message}</div>`; }
+}
+
+// ─── Social ──────────────────────────────────────────────────────────
+function renderSocial() { renderFriends(); }
+
+async function renderFriends() {
+  const el = document.getElementById('social-friends');
+  el.innerHTML = '<div class="state-msg"><div class="spinner"></div>Loading friends…</div>';
+  try {
+    const friends = await listFriends(currentUser.uid);
+    if (!friends.length) {
+      el.innerHTML = '<div class="state-msg">You haven\'t added any friends yet.<br>Visit another player\'s profile to send a request.</div>';
+      return;
+    }
+    // Fetch each friend's live player doc to compute online status & level
+    const detailed = await Promise.all(friends.map(async f => {
+      try {
+        const d = await getPlayer(f.uid).catch(() => null);
+        return { ...f, online: d ? isOnline(d) : false, level: d?.level };
+      } catch { return { ...f, online: false }; }
+    }));
+    el.innerHTML = detailed.map(f => `
+      <div class="friend-row">
+        <div class="friend-avatar">${avatarEmoji(f.avatarId)}</div>
+        <div>
+          <div class="friend-name">${esc(f.username)}</div>
+          <div class="friend-status ${f.online ? 'online' : ''}">${f.online ? '● Online' : '○ Offline'}${f.level ? ' · LV ' + f.level : ''}</div>
+        </div>
+        <button class="btn-sm" onclick="window.location.href='user.html?uid=${f.uid}'">View</button>
+        <button class="btn-sm" style="color:var(--err);border-color:rgba(255,77,109,0.3)"
+          onclick="doRemoveFriend('${f.uid}','${esc(f.username).replace(/'/g,"\\'")}')">Remove</button>
+      </div>
+    `).join('');
+  } catch(e) { el.innerHTML = `<div class="state-msg">Error: ${e.message}</div>`; }
+}
+
+async function renderInbox() {
+  const el = document.getElementById('social-inbox');
+  el.innerHTML = '<div class="state-msg"><div class="spinner"></div>Loading inbox…</div>';
+  try {
+    const msgs = await getInbox(currentUser.uid);
+    refreshUnreadBadge();
+    if (!msgs.length) {
+      el.innerHTML = '<div class="state-msg">Your inbox is empty.</div>';
+      return;
+    }
+    el.innerHTML = msgs.map(m => `
+      <div class="inbox-row ${m.read ? '' : 'unread'}" data-id="${m.id}" data-type="${m.type}" data-from="${m.from}">
+        <div class="inbox-avatar">${avatarEmoji(m.fromAvatarId)}</div>
+        <div>
+          <div class="inbox-from">
+            <span class="inbox-type-pill ${m.type}">${m.type === 'friend_request' ? 'FRIEND' : 'MSG'}</span>
+            ${esc(m.fromUsername)}
+          </div>
+          <div class="inbox-preview">${m.type === 'friend_request' ? 'wants to be your friend' : esc(m.body || '(no content)')}</div>
+        </div>
+        <div class="inbox-time">${relTime(m.sentAt)}</div>
+      </div>
+    `).join('');
+    const msgMap = Object.fromEntries(msgs.map(m => [m.id, m]));
+    el.querySelectorAll('.inbox-row').forEach(row => {
+      row.addEventListener('click', () => openInboxMessage(row.dataset.id, row.dataset.type, row.dataset.from, msgMap[row.dataset.id]));
+    });
+  } catch(e) { el.innerHTML = `<div class="state-msg">Error: ${e.message}</div>`; }
+}
+
+async function openInboxMessage(msgId, type, fromUid, msg) {
+  if (!msg) return;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg';
+  const actions = (type === 'friend_request')
+    ? `<button class="btn primary" id="m-accept">Accept</button>
+       <button class="btn danger"  id="m-decline">Decline</button>`
+    : `<button class="btn primary" id="m-reply">Reply</button>
+       <button class="btn danger"  id="m-delete">Delete</button>`;
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>${type === 'friend_request' ? 'Friend request' : 'Message'}</h3>
+      <div style="font-size:13px;letter-spacing:1px;margin-bottom:8px">
+        From <b style="color:var(--accent)">${esc(msg.fromUsername)}</b>
+        <span style="color:var(--text-faint);font-size:10px">· ${relTime(msg.sentAt)}</span>
+      </div>
+      ${msg.body
+        ? `<div style="background:rgba(255,255,255,0.03);padding:10px;border-left:2px solid var(--accent);font-size:13px;line-height:1.5">${esc(msg.body)}</div>`
+        : '<div style="font-size:12px;color:var(--text-dim)">No message content.</div>'}
+      <div class="flash" id="m-flash"></div>
+      <div class="modal-foot">
+        <button class="btn" id="m-view-profile">View profile</button>
+        ${actions}
+        <button class="btn" id="m-close">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const close = () => modal.remove();
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+  modal.querySelector('#m-close').onclick = close;
+  modal.querySelector('#m-view-profile').onclick = () => {
+    window.location.href = `user.html?uid=${fromUid}`;
+  };
+
+  // Mark as read as soon as it's opened
+  if (!msg.read) {
+    markMessageRead(currentUser.uid, msgId).catch(() => {});
+    refreshUnreadBadge();
+  }
+
+  if (type === 'friend_request') {
+    modal.querySelector('#m-accept').onclick = async (e) => {
+      e.target.disabled = true;
+      try {
+        await acceptFriendRequest(currentUser.uid, msgId, player);
+        player = await getPlayer(currentUser.uid);
+        renderHeader(); renderFriends(); renderInbox(); close();
+        toast('Friend added');
+      } catch (err) {
+        modal.querySelector('#m-flash').textContent = err.message;
+        modal.querySelector('#m-flash').className = 'flash err';
+        e.target.disabled = false;
+      }
+    };
+    modal.querySelector('#m-decline').onclick = async () => {
+      try { await deleteMessage(currentUser.uid, msgId); renderInbox(); close(); }
+      catch(err) { toast(err.message); }
+    };
+  } else {
+    modal.querySelector('#m-reply').onclick = () => {
+      close();
+      openCompose(fromUid, msg.fromUsername);
+    };
+    modal.querySelector('#m-delete').onclick = async () => {
+      try { await deleteMessage(currentUser.uid, msgId); renderInbox(); close(); }
+      catch(err) { toast(err.message); }
+    };
+  }
+}
+
+function openCompose(toUid, toUsername) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>Message ${esc(toUsername)}</h3>
+      <div class="field">
+        <textarea id="msg-body" maxlength="500" placeholder="Say something friendly…"></textarea>
+        <div class="hint"><span id="cc">0</span>/500</div>
+      </div>
+      <div class="flash" id="m-flash"></div>
+      <div class="modal-foot">
+        <button class="btn" id="cancel">Cancel</button>
+        <button class="btn primary" id="send">Send</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  const body = modal.querySelector('#msg-body');
+  body.addEventListener('input', () => modal.querySelector('#cc').textContent = body.value.length);
+  modal.querySelector('#cancel').onclick = () => modal.remove();
+  modal.querySelector('#send').onclick = async (e) => {
+    e.target.disabled = true;
+    try {
+      await sendMessage(currentUser.uid, toUid, player, body.value);
+      toast('Sent!'); modal.remove();
+    } catch(err) {
+      modal.querySelector('#m-flash').textContent = err.message;
+      modal.querySelector('#m-flash').className = 'flash err';
+      e.target.disabled = false;
+    }
+  };
+  body.focus();
+}
+
+async function refreshUnreadBadge() {
+  try {
+    const n = await getUnreadCount(currentUser.uid);
+    const navBadge  = document.getElementById('nav-unread-badge');
+    const tabBadge  = document.getElementById('social-unread-badge');
+    [navBadge, tabBadge].forEach(b => {
+      if (!b) return;
+      b.textContent = n > 99 ? '99+' : n;
+      b.style.display = n > 0 ? '' : 'none';
+    });
+  } catch (_) {}
+}
+
+// ─── Edit Profile ──────────────────────────────────────────────────────
+document.getElementById('btn-edit-profile').addEventListener('click', openEditModal);
+
+function openEditModal() {
+  if (!player) { toast('Profile not loaded yet'); return; }
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>Edit profile</h3>
+      <div class="field">
+        <label>Bio</label>
+        <textarea id="f-bio" maxlength="280" placeholder="Tell people about yourself…">${esc(player.bio||'')}</textarea>
+        <div class="hint"><span id="bio-cc">${(player.bio||'').length}</span>/280</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Country (ISO)</label>
+          <input id="f-country" maxlength="3" value="${esc(player.country||'')}" placeholder="e.g. HR">
+        </div>
+        <div class="field">
+          <label>Pronouns</label>
+          <input id="f-pronouns" maxlength="24" value="${esc(player.pronouns||'')}" placeholder="she/her">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Birthday</label>
+          <input id="f-birthday" type="date" value="${esc(player.birthday||'')}">
+          <div class="hint">Only month &amp; day shown publicly</div>
+        </div>
+        <div class="field">
+          <label>Show birthday?</label>
+          <select id="f-show-bday">
+            <option value="true"  ${player.showBirthday !== false ? 'selected' : ''}>Yes</option>
+            <option value="false" ${player.showBirthday === false ? 'selected' : ''}>No</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Accent color</label>
+        <input id="f-accent" type="color" value="${esc(player.accentColor || '#FFE566')}" style="width:48px;height:32px;padding:0;border:none;background:none;cursor:pointer">
+        <div class="hint">Colours your profile's highlights</div>
+      </div>
+      <div class="field">
+        <label>Profile picture (optional)</label>
+        <input id="f-pic" type="file" accept="image/*">
+        <div class="upload-preview" id="pic-preview">${
+          player.profilePicUrl
+            ? `<img src="${esc(player.profilePicUrl)}">`
+            : avatarEmoji(player.avatarId)
+        }</div>
+        <div class="hint">
+          Uploaded via imgBB (max 2MB). imgBB can't be programmatically cleaned up —
+          ${player.profilePicDeleteUrl
+            ? `<a href="#" id="f-cleanup" style="color:var(--accent)">manually open old delete URL</a>`
+            : `no prior image stored`}.
+        </div>
+      </div>
+      <div class="flash" id="edit-flash"></div>
+      <div class="modal-foot">
+        <button class="btn" id="cancel">Cancel</button>
+        <button class="btn danger" id="remove-pic" ${player.profilePicUrl ? '' : 'disabled'}>Remove pic</button>
+        <button class="btn primary" id="save">Save</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const bioInput = modal.querySelector('#f-bio');
+  bioInput.addEventListener('input', () => modal.querySelector('#bio-cc').textContent = bioInput.value.length);
+
+  // Live preview of picked image
+  modal.querySelector('#f-pic').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => modal.querySelector('#pic-preview').innerHTML = `<img src="${r.result}">`;
+    r.readAsDataURL(f);
+  });
+
+  modal.querySelector('#f-cleanup')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (player.profilePicDeleteUrl) window.open(player.profilePicDeleteUrl, '_blank');
+    else toast('No stored delete URL');
+  });
+
+  modal.querySelector('#cancel').onclick = () => modal.remove();
+
+  modal.querySelector('#remove-pic').onclick = async (e) => {
+    e.target.disabled = true;
+    try {
+      if (player.profilePicDeleteUrl) tryCleanupImgBB(player.profilePicDeleteUrl);
+      await updateProfileFields(currentUser.uid, { profilePicUrl: '', profilePicDeleteUrl: '' });
+      player = await getPlayer(currentUser.uid);
+      renderHeader(); modal.remove();
+      toast('Profile picture removed');
+    } catch(err) { flash(err.message, 'err'); e.target.disabled = false; }
+  };
+
+  modal.querySelector('#save').onclick = async (e) => {
+    e.target.disabled = true;
+    try {
+      // Upload image if a new one was picked
+      const file = modal.querySelector('#f-pic').files[0];
+      let picFields = {};
+      if (file) {
+        flash('Uploading image…', 'ok');
+        const { url, deleteUrl } = await uploadToImgBB(file);
+        if (player.profilePicDeleteUrl) tryCleanupImgBB(player.profilePicDeleteUrl);
+        picFields = { profilePicUrl: url, profilePicDeleteUrl: deleteUrl };
+      }
+      await updateProfileFields(currentUser.uid, {
+        bio:          modal.querySelector('#f-bio').value.trim(),
+        country:      modal.querySelector('#f-country').value.trim().toUpperCase(),
+        pronouns:     modal.querySelector('#f-pronouns').value.trim(),
+        birthday:     modal.querySelector('#f-birthday').value,
+        showBirthday: modal.querySelector('#f-show-bday').value === 'true',
+        accentColor:  modal.querySelector('#f-accent').value,
+        ...picFields,
+      });
+      player = await getPlayer(currentUser.uid);
+      renderHeader();
+      toast('Profile updated');
+      modal.remove();
+    } catch(err) { flash(err.message, 'err'); e.target.disabled = false; }
+  };
+
+  function flash(msg, kind) {
+    const el = modal.querySelector('#edit-flash');
+    el.textContent = msg; el.className = 'flash ' + kind;
+  }
+}
+
+// ─── Utils ────────────────────────────────────────────────────────────
+function avatarEmoji(id) {
+  const m = {default:'🥁', avatar_fire:'🔥', avatar_electric:'⚡', avatar_ice:'❄️',
+    avatar_cosmic:'🌌', avatar_ghost:'👻', avatar_skull:'💀', avatar_crown:'👑'};
+  return m[id] || '🥁';
+}
+function fmtBirthday(iso) {
+  const [_y, m, d] = (iso || '').split('-');
+  if (!m || !d) return '';
+  const date = new Date(2000, parseInt(m) - 1, parseInt(d));
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+function relTime(ts) {
+  if (!ts) return '';
+  const ms = ts.toMillis ? ts.toMillis() : new Date(ts).getTime();
+  const diff = (Date.now() - ms) / 1000;
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return Math.floor(diff/60)    + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600)  + 'h ago';
+  if (diff < 604800) return Math.floor(diff/86400) + 'd ago';
+  return new Date(ms).toLocaleDateString();
+}
+function esc(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
+  }[c]));
+}
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>

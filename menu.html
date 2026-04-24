@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ZeBongo — Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Black+Ops+One&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f; --bg-panel: #111118; --bg-card: #131320;
+  --border: rgba(255,255,255,0.08); --border-hi: rgba(255,255,255,0.18);
+  --text: #e8e8f0; --text-dim: rgba(232,232,240,0.45); --text-faint: rgba(232,232,240,0.15);
+  --accent: #FFE566; --accent-glow: rgba(255,229,102,0.25);
+  --err: #FF4D6D; --ok: #88FF99;
+  --lane-0: #FF4D6D; --lane-1: #FFB347; --lane-2: #4DC4FF; --lane-3: #B47DFF;
+  --font-d: 'Black Ops One', cursive; --font-m: 'Share Tech Mono', monospace;
+  --topbar: 56px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--bg); color: var(--text);
+  font-family: var(--font-m); -webkit-font-smoothing: antialiased; overflow: hidden;
+}
+
+/* ─── Top bar ─────────────────────────────────────────── */
+#topbar {
+  height: var(--topbar); background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0;
+  position: relative; z-index: 10;
+}
+.logo { font-family: var(--font-d); font-size: 20px; letter-spacing: 2px; }
+.logo span { color: var(--accent); }
+.topbar-spacer { flex: 1; }
+.profile-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border: 1px solid var(--border);
+  background: none; cursor: pointer; color: var(--text); font-family: var(--font-m);
+  font-size: 11px; letter-spacing: 1px; transition: border-color .15s;
+}
+.profile-btn:hover { border-color: var(--border-hi); }
+.profile-avatar { font-size: 18px; }
+.profile-name { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.logout-btn {
+  width: 32px; height: 32px; background: none;
+  border: 1px solid var(--border); color: var(--text-dim);
+  font-size: 16px; cursor: pointer; transition: border-color .15s, color .15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.logout-btn:hover { border-color: var(--err); color: var(--err); }
+.currency-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border: 1px solid var(--border);
+  font-size: 12px; font-family: var(--font-d); color: var(--accent);
+}
+
+/* ─── Layout ──────────────────────────────────────────── */
+#app {
+  display: flex; flex-direction: column;
+  height: calc(100vh - var(--topbar)); overflow: hidden;
+}
+
+/* ─── Tabs ────────────────────────────────────────────── */
+#tabs {
+  display: flex; background: var(--bg-panel);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.tab {
+  padding: 10px 20px; font-size: 10px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--text-dim);
+  border: none; border-bottom: 2px solid transparent;
+  background: none; cursor: pointer; transition: color .15s, border-color .15s;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ─── Search + filters ────────────────────────────────── */
+#controls {
+  padding: 12px 16px; background: var(--bg-panel);
+  border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; gap: 8px;
+  flex-wrap: wrap; align-items: center;
+}
+#search {
+  flex: 1; min-width: 180px; height: 36px; padding: 0 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font-m); font-size: 12px; outline: none;
+}
+#search:focus { border-color: var(--border-hi); }
+#search::placeholder { color: var(--text-dim); }
+.filter-btn {
+  height: 36px; padding: 0 12px;
+  background: none; border: 1px solid var(--border);
+  color: var(--text-dim); font-family: var(--font-m);
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  cursor: pointer; transition: all .12s; white-space: nowrap;
+}
+.filter-btn:hover { border-color: var(--border-hi); color: var(--text); }
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #0a0a0f; }
+#create-btn {
+  height: 36px; padding: 0 16px;
+  background: none; border: 1px solid var(--ok);
+  color: var(--ok); font-family: var(--font-d);
+  font-size: 12px; letter-spacing: 2px; cursor: pointer;
+  transition: background .12s, color .12s;
+}
+#create-btn:hover { background: var(--ok); color: #0a0a0f; }
+
+/* ─── Content area ────────────────────────────────────── */
+#content { flex: 1; overflow-y: auto; padding: 16px; }
+#content::-webkit-scrollbar { width: 4px; }
+#content::-webkit-scrollbar-track { background: transparent; }
+#content::-webkit-scrollbar-thumb { background: var(--border-hi); }
+
+/* ─── Loading / empty ─────────────────────────────────── */
+.state-msg {
+  text-align: center; padding: 60px 20px;
+  font-size: 12px; letter-spacing: 2px; color: var(--text-dim);
+}
+.spinner {
+  width: 24px; height: 24px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .7s linear infinite; margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Level cards ─────────────────────────────────────── */
+#level-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.level-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 16px; cursor: pointer;
+  transition: border-color .15s, transform .12s;
+  position: relative; overflow: hidden;
+}
+.level-card:hover { border-color: var(--border-hi); transform: translateY(-2px); }
+.card-diff-bar {
+  position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+}
+.level-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.card-title { font-family: var(--font-d); font-size: 15px; letter-spacing: 1px; flex: 1; }
+.card-diff { font-size: 11px; }
+.card-artist { font-size: 11px; color: var(--text-dim); margin-top: 4px; letter-spacing: 1px; }
+.card-creator { font-size: 10px; color: var(--text-dim); margin-top: 3px; letter-spacing: 1px; }
+.card-creator span { color: var(--accent); }
+.card-meta {
+  display: flex; gap: 14px; margin-top: 12px;
+  font-size: 10px; color: var(--text-dim); letter-spacing: 1px;
+  flex-wrap: wrap; align-items: center;
+}
+.card-meta span { display: flex; align-items: center; gap: 4px; }
+.card-like-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-m); font-size: 10px; letter-spacing: 1px;
+  color: var(--text-dim); padding: 0; transition: color .15s;
+}
+.card-like-btn:hover  { color: var(--err); }
+.card-like-btn.liked  { color: var(--err); }
+.card-like-btn:disabled { opacity: 0.5; cursor: default; }
+.card-actions {
+  display: flex; flex-direction: column; gap: 6px; margin-top: 12px;
+}
+.card-row {
+  display: flex; gap: 6px;
+}
+.card-btn {
+  flex: 1; height: 32px; font-family: var(--font-d); font-size: 11px;
+  letter-spacing: 2px; border: none; cursor: pointer; transition: opacity .12s;
+}
+.card-btn:hover { opacity: 0.82; }
+.play-btn    { background: var(--accent); color: #0a0a0f; }
+.edit-btn    { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border); }
+.publish-btn { background: none; color: var(--ok); border: 1px solid rgba(136,255,153,0.3); }
+.unpub-btn   { background: none; color: var(--text-dim); border: 1px solid var(--border); }
+.del-btn     { background: none; color: var(--err); border: 1px solid rgba(255,77,109,0.3); flex: 0 0 44px; }
+.verify-btn  { background: rgba(136,255,153,0.1); color: var(--ok); border: 1px solid rgba(136,255,153,0.3); }
+.unverify-btn{ background: rgba(255,229,102,0.08); color: var(--accent); border: 1px solid rgba(255,229,102,0.3); }
+
+/* ─── Verified badge ──────────────────────────────────── */
+.verified-badge {
+  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  padding: 2px 6px; border: 1px solid;
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.verified-badge.yes { border-color: var(--ok); color: var(--ok); }
+.verified-badge.no  { border-color: var(--text-faint); color: var(--text-faint); }
+
+/* ─── Leaderboard ─────────────────────────────────────── */
+#leaderboard-wrap { max-width: 600px; margin: 0 auto; }
+.lb-header {
+  font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--text-dim); padding: 0 0 10px;
+  display: grid; grid-template-columns: 36px 1fr 1fr 1fr; gap: 8px;
+}
+.lb-row {
+  display: grid; grid-template-columns: 36px 1fr 1fr 1fr;
+  gap: 8px; align-items: center; padding: 10px 0;
+  border-bottom: 1px solid var(--border); font-size: 12px;
+}
+.lb-rank { font-family: var(--font-d); color: var(--text-dim); font-size: 16px; }
+.lb-rank.top1 { color: var(--accent); }
+.lb-rank.top2 { color: #C0C0C0; }
+.lb-rank.top3 { color: #CD7F32; }
+.lb-name { display: flex; align-items: center; gap: 6px; font-family: var(--font-d); }
+.lb-avatar { font-size: 16px; }
+.lb-score { color: var(--accent); font-family: var(--font-d); text-align: right; }
+.lb-acc { color: var(--text-dim); text-align: right; font-size: 11px; }
+.lb-me { background: rgba(255,229,102,0.05); }
+
+/* ─── Published badge ─────────────────────────────────── */
+.pub-badge {
+  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  padding: 2px 6px; border: 1px solid;
+}
+.pub-badge.published { border-color: var(--ok); color: var(--ok); }
+.pub-badge.draft { border-color: var(--text-faint); color: var(--text-faint); }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div id="topbar">
+  <div class="logo">Ze<span>Bongo</span></div>
+  <div class="topbar-spacer"></div>
+  <div class="currency-badge">🪙 <span id="coins">—</span></div>
+  <button class="profile-btn" onclick="window.location.href='profile.html'">
+    <span class="profile-avatar" id="nav-avatar">🥁</span>
+    <span class="profile-name"  id="nav-name">…</span>
+  </button>
+  <button class="logout-btn" title="Logout" onclick="doLogout()">⏏</button>
+</div>
+
+<div id="app">
+  <!-- Tabs -->
+  <div id="tabs">
+    <button class="tab active" data-tab="browse"   onclick="switchTab('browse')">Browse Maps</button>
+    <button class="tab"        data-tab="mine"     onclick="switchTab('mine')">My Maps</button>
+    <button class="tab"        data-tab="rankings" onclick="switchTab('rankings')">Rankings</button>
+    <button class="tab"        data-tab="verify"   id="tab-verify" onclick="switchTab('verify')" style="display:none;color:var(--ok)">Verify Queue</button>
+  </div>
+
+  <!-- Controls -->
+  <div id="controls">
+    <input id="search" type="text" placeholder="Search title, artist, creator…">
+
+    <!-- Sort -->
+    <button class="filter-btn active" id="sort-new"   onclick="setSort('createdAt', this)">New</button>
+    <button class="filter-btn"        id="sort-plays" onclick="setSort('playCount', this)">Popular</button>
+    <button class="filter-btn"        id="sort-likes" onclick="setSort('likeCount', this)">Liked</button>
+
+    <!-- Difficulty filter -->
+    <button class="filter-btn" id="diff-all" onclick="setDiff(null, this)">All ★</button>
+    <button class="filter-btn" id="diff-1"   onclick="setDiff(1, this)">★</button>
+    <button class="filter-btn" id="diff-2"   onclick="setDiff(2, this)">★★</button>
+    <button class="filter-btn" id="diff-3"   onclick="setDiff(3, this)">★★★</button>
+    <button class="filter-btn" id="diff-4"   onclick="setDiff(4, this)">★★★★</button>
+    <button class="filter-btn" id="diff-5"   onclick="setDiff(5, this)">★★★★★</button>
+
+    <button id="create-btn" onclick="window.location.href='editor.html'">+ Create</button>
+  </div>
+
+  <!-- Content -->
+  <div id="content">
+    <div id="level-grid"></div>
+    <div id="leaderboard-wrap" style="display:none">
+      <div id="player-search-wrap" style="max-width:600px;margin:0 auto 18px;">
+        <div style="display:flex;gap:8px;">
+          <input id="player-search-input" type="text" placeholder="Search players…"
+            style="flex:1;height:38px;padding:0 12px;background:rgba(255,255,255,0.04);
+                   border:1px solid var(--border);color:var(--text);
+                   font-family:var(--font-m);font-size:13px;outline:none;"
+            oninput="onPlayerSearch(this.value)">
+        </div>
+        <div id="player-search-results"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import {
+  getPlayer, logoutUser, getLevels, getMyLevels, getTopPlayers,
+  difficultyLabel, difficultyColor, tsToDate, unpublishLevel, publishLevel,
+  deleteLevel, isAdminPlayer, verifyLevel, unverifyLevel, getUnverifiedLevels,
+  titleDisplay, searchPlayers, toggleLike, getLikedLevels,
+} from './js/firebase.js';
+import { requireAuth } from './js/auth.js';
+
+let currentUser, playerData;
+let isAdmin = false;
+let currentTab = 'browse';
+let sortBy = 'createdAt';
+let difficulty = null;
+let searchTimer;
+let likedSet = new Set(); // levelIds the current user has liked
+
+const grid     = document.getElementById('level-grid');
+const lbWrap   = document.getElementById('leaderboard-wrap');
+const search   = document.getElementById('search');
+const controls = document.getElementById('controls');
+
+// ─── Window globals — defined BEFORE the first await ────────────────
+// Top-level await suspends the module. If anything throws after an await,
+// any assignments below that point never run — making onclick handlers
+// silently do nothing. Defining them here guarantees they are always set.
+
+window.doLogout = async () => { await logoutUser(); window.location.href = 'index.html'; };
+
+window.switchTab = (tab) => {
+  currentTab = tab;
+  // Update active-highlight for whichever tab button matches
+  document.querySelectorAll('#tabs .tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  const isRankings = tab === 'rankings';
+  const isVerify   = tab === 'verify';
+  controls.style.display = (isRankings || isVerify) ? 'none' : '';
+  grid.style.display     = isRankings ? 'none' : '';
+  lbWrap.style.display   = isRankings ? ''     : 'none';
+  if (isRankings)      renderRankings();
+  else if (isVerify)   loadVerifyQueue();
+  else                 loadLevels();
+};
+
+window.setSort = (s, btn) => {
+  sortBy = s;
+  document.querySelectorAll('[id^="sort-"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (currentTab !== 'rankings' && currentTab !== 'verify') loadLevels();
+};
+
+window.setDiff = (d, btn) => {
+  difficulty = d;
+  document.querySelectorAll('[id^="diff-"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (currentTab !== 'rankings' && currentTab !== 'verify') loadLevels();
+};
+
+window.playLevel   = (id) => { window.location.href = `game.html?levelId=${id}`; };
+window.editLevel   = (id) => { window.location.href = `editor.html?levelId=${id}`; };
+
+window.togglePublish = async (id, pub) => {
+  try {
+    if (pub) await publishLevel(id, currentUser.uid);
+    else     await unpublishLevel(id, currentUser.uid);
+    loadLevels();
+  } catch (e) { alert(e.message); }
+};
+
+window.deleteLevelConfirm = async (id) => {
+  if (!confirm(`Delete this map permanently? This can't be undone.`)) return;
+  try {
+    await deleteLevel(id, currentUser.uid);
+    loadLevels();
+  } catch (e) { alert('Delete failed: ' + e.message); }
+};
+
+window.doVerify = async (id) => {
+  try {
+    await verifyLevel(id, currentUser.uid);
+    if (currentTab === 'verify') loadVerifyQueue(); else loadLevels();
+  } catch (e) { alert('Verify failed: ' + e.message); }
+};
+
+window.doUnverify = async (id) => {
+  if (!confirm('Remove verification from this level? Players will stop earning coins from it.')) return;
+  try {
+    await unverifyLevel(id, currentUser.uid);
+    if (currentTab === 'verify') loadVerifyQueue(); else loadLevels();
+  } catch (e) { alert('Unverify failed: ' + e.message); }
+};
+
+// ─── Boot (async) ────────────────────────────────────────────────────
+try {
+  currentUser = await requireAuth();
+  playerData  = await getPlayer(currentUser.uid);
+} catch (_) { /* requireAuth redirects to index.html if not logged in */ }
+
+// Null-safe: player doc might not exist on first load edge cases
+if (playerData) {
+  document.getElementById('nav-name').textContent   = playerData.username;
+  document.getElementById('nav-avatar').textContent = avatarEmoji(playerData.avatarId);
+  document.getElementById('coins').textContent      = playerData.currency.toLocaleString();
+  isAdmin = isAdminPlayer(playerData);
+  if (isAdmin) {
+    document.getElementById('tab-verify').style.display = '';
+  }
+  // Pre-fetch liked levels so heart buttons render correctly
+  try {
+    const liked = await getLikedLevels(currentUser.uid);
+    likedSet = new Set(liked);
+  } catch (_) {}
+}
+
+// ─── Search ─────────────────────────────────────────────────────────
+search.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(loadLevels, 350);
+});
+
+// ─── Load Levels ────────────────────────────────────────────────────
+async function loadLevels() {
+  grid.innerHTML = `<div class="state-msg"><div class="spinner"></div>Loading…</div>`;
+  grid.style.gridColumn = '1/-1';
+  try {
+    let levels;
+    if (currentTab === 'mine') {
+      levels = await getMyLevels(currentUser.uid);
+    } else {
+      levels = await getLevels({ search: search.value.trim(), sortBy, difficulty });
+    }
+    renderLevels(levels);
+  } catch (e) {
+    grid.innerHTML = `<div class="state-msg">Error loading maps: ${e.message}</div>`;
+  }
+}
+
+function renderLevels(levels) {
+  grid.style.gridColumn = '';
+  if (!levels.length) {
+    grid.innerHTML = `<div class="state-msg">No maps found.</div>`;
+    grid.style.gridColumn = '1/-1';
+    return;
+  }
+  grid.innerHTML = '';
+  levels.forEach(l => grid.appendChild(levelCard(l)));
+}
+
+function levelCard(l) {
+  const isMine = l.creatorUid === currentUser.uid;
+  const color  = difficultyColor(l.difficulty);
+  const diff   = difficultyLabel(l.difficulty);
+  const el     = document.createElement('div');
+  el.className = 'level-card';
+
+  const verifiedBadge = l.isPublished
+    ? `<span class="verified-badge ${l.isVerified?'yes':'no'}" title="${l.isVerified?'Earns coins when cleared':'Unverified — clears will not earn coins'}">
+         ${l.isVerified ? '✓ VERIFIED' : 'UNVERIFIED'}
+       </span>`
+    : '';
+
+  // Row 2 varies by role: creator, admin-only, or nothing for regular players
+  let row2 = '';
+  if (isMine) {
+    // Creator actions: publish/unpublish + delete
+    const pubBtn = l.isPublished
+      ? `<button class="card-btn unpub-btn" onclick="togglePublish('${l.id}',false)" title="Unpublish">⬇ Unpublish</button>`
+      : `<button class="card-btn publish-btn" onclick="togglePublish('${l.id}',true)" title="Publish">⬆ Publish</button>`;
+    row2 = `<div class="card-row">
+      ${pubBtn}
+      <button class="card-btn del-btn" onclick="deleteLevelConfirm('${l.id}')" title="Delete permanently">🗑</button>
+    </div>`;
+  }
+  // Admin actions layer — shown even on other people's cards
+  let row3 = '';
+  if (isAdmin && l.isPublished) {
+    row3 = `<div class="card-row">
+      ${l.isVerified
+        ? `<button class="card-btn unverify-btn" onclick="doUnverify('${l.id}')">Un-verify</button>`
+        : `<button class="card-btn verify-btn"   onclick="doVerify('${l.id}')">✓ Verify</button>`}
+    </div>`;
+  }
+
+  const isLiked = likedSet.has(l.id);
+  const speedTag  = (l.noteSpeed && l.noteSpeed !== 1.0) ? `<span title="Note speed">▶ ${l.noteSpeed}×</span>` : '';
+  const hpTag     = (l.hpMode   && l.hpMode    !== 'Normal') ? `<span title="HP mode">${l.hpMode}</span>` : '';
+  const countTag  = l.noteCount ? `<span title="Note count">♩ ${l.noteCount.toLocaleString()}</span>` : '';
+  const durSec    = l.durationBeats && l.bpm ? Math.round((l.durationBeats / l.bpm) * 60) : 0;
+  const durTag    = durSec > 0 ? `<span title="Map length">⏱ ${Math.floor(durSec/60)}:${String(durSec%60).padStart(2,'0')}</span>` : '';
+
+  el.innerHTML = `
+    <div class="card-diff-bar" style="background:${color}"></div>
+    <div style="padding-left:8px">
+      <div class="level-card-header">
+        <div class="card-title">${esc(l.title)}</div>
+        <div class="card-diff" style="color:${color}">${diff}</div>
+      </div>
+      <div class="card-artist">${esc(l.artist)}</div>
+      <div class="card-creator">by <span>${esc(l.creatorUsername||'Unknown')}</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center">
+        ${isMine ? `<span class="pub-badge ${l.isPublished?'published':'draft'}">${l.isPublished?'Live':'Draft'}</span>` : ''}
+        ${verifiedBadge}
+      </div>
+      <div class="card-meta">
+        <span>▶ ${(l.playCount||0).toLocaleString()}</span>
+        <button class="card-like-btn ${isLiked ? 'liked' : ''}" data-level-id="${l.id}" title="Like this map">
+          ${isLiked ? '♥' : '♡'} <span class="like-count">${(l.likeCount||0).toLocaleString()}</span>
+        </button>
+        <span>♩ ${l.bpm} BPM</span>
+        ${durTag}
+        ${countTag}
+        ${speedTag}
+        ${hpTag}
+      </div>
+      <div class="card-actions">
+        <div class="card-row">
+          <button class="card-btn play-btn" onclick="playLevel('${l.id}')">Play</button>
+          ${isMine ? `<button class="card-btn edit-btn" onclick="editLevel('${l.id}')">Edit</button>` : ''}
+        </div>
+        ${row2}
+        ${row3}
+      </div>
+    </div>
+  `;
+
+  // Wire the like button (can't use inline onclick since it needs closure over el)
+  el.querySelector('.card-like-btn').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      const nowLiked = await toggleLike(currentUser.uid, l.id);
+      if (nowLiked) { likedSet.add(l.id); } else { likedSet.delete(l.id); }
+      btn.classList.toggle('liked', nowLiked);
+      btn.innerHTML = `${nowLiked ? '♥' : '♡'} <span class="like-count">${
+        ((nowLiked ? (l.likeCount||0)+1 : (l.likeCount||0)-1)).toLocaleString()
+      }</span>`;
+      // Keep local count in sync for subsequent toggles
+      l.likeCount = nowLiked ? (l.likeCount||0)+1 : Math.max(0,(l.likeCount||0)-1);
+    } catch (_) {}
+    btn.disabled = false;
+  });
+
+  return el;
+}
+
+// ─── Admin: unverified queue ────────────────────────────────────────
+async function loadVerifyQueue() {
+  grid.style.display = '';
+  grid.innerHTML = `<div class="state-msg"><div class="spinner"></div>Loading unverified levels…</div>`;
+  grid.style.gridColumn = '1/-1';
+  try {
+    const levels = await getUnverifiedLevels(50);
+    grid.style.gridColumn = '';
+    if (!levels.length) {
+      grid.innerHTML = `<div class="state-msg">Nothing to verify — all published levels have been reviewed.</div>`;
+      grid.style.gridColumn = '1/-1';
+      return;
+    }
+    grid.innerHTML = '';
+    levels.forEach(l => grid.appendChild(levelCard(l)));
+  } catch (e) {
+    grid.innerHTML = `<div class="state-msg">Error loading queue: ${e.message}</div>`;
+  }
+}
+
+// (playLevel, editLevel, togglePublish defined above before first await)
+
+// ─── Global Rankings ────────────────────────────────────────────────
+let _lbTable = null; // persistent element so search UI isn't wiped
+
+async function renderRankings() {
+  // Ensure the persistent table container exists (created once)
+  if (!_lbTable) {
+    _lbTable = document.createElement('div');
+    _lbTable.id = 'lb-table';
+    lbWrap.appendChild(_lbTable);
+  }
+  _lbTable.innerHTML = `<div class="state-msg"><div class="spinner"></div>Loading rankings…</div>`;
+  // Clear search box on fresh load
+  const searchInput = document.getElementById('player-search-input');
+  if (searchInput) searchInput.value = '';
+  document.getElementById('player-search-results').innerHTML = '';
+
+  try {
+    const players = await getTopPlayers(25);
+    _lbTable.innerHTML = `
+      <div class="lb-header">
+        <div>#</div><div>Player</div><div style="text-align:right">Total Score</div><div style="text-align:right">Plays</div>
+      </div>
+    `;
+    players.forEach(p => {
+      const row = document.createElement('div');
+      const rankClass = p.rank === 1 ? 'top1' : p.rank === 2 ? 'top2' : p.rank === 3 ? 'top3' : '';
+      const isMe = p.uid === currentUser.uid;
+      row.className = `lb-row${isMe ? ' lb-me' : ''}`;
+      if (!isMe) {
+        row.style.cursor = 'pointer';
+        row.title = `View ${p.username}'s profile`;
+        row.addEventListener('click', () => { window.location.href = `user.html?uid=${p.uid}`; });
+      }
+      row.innerHTML = `
+        <div class="lb-rank ${rankClass}">${p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : p.rank === 3 ? '🥉' : p.rank}</div>
+        <div class="lb-name">
+          <span class="lb-avatar">${avatarEmoji(p.avatarId)}</span>
+          <div>
+            <div>${esc(p.username)}${isMe ? ' <span style="color:var(--accent);font-size:10px">(you)</span>' : ''}</div>
+            <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">${esc(titleDisplay(p.equippedTitle) || '')}</div>
+          </div>
+        </div>
+        <div class="lb-score">${((p.stats||{}).totalScore||0).toLocaleString()}</div>
+        <div class="lb-acc">${((p.stats||{}).totalPlays||0)} plays</div>
+      `;
+      _lbTable.appendChild(row);
+    });
+  } catch (e) {
+    _lbTable.innerHTML = `<div class="state-msg">Error: ${e.message}</div>`;
+  }
+}
+
+// ─── Player Search ───────────────────────────────────────────────────
+let _searchTimer = null;
+window.onPlayerSearch = (val) => {
+  clearTimeout(_searchTimer);
+  const res = document.getElementById('player-search-results');
+  if (!val.trim()) { res.innerHTML = ''; if (_lbTable) _lbTable.style.display = ''; return; }
+  if (_lbTable) _lbTable.style.display = 'none'; // hide rankings while searching
+  res.innerHTML = `<div class="state-msg" style="padding:16px"><div class="spinner"></div>Searching…</div>`;
+  _searchTimer = setTimeout(async () => {
+    try {
+      const players = await searchPlayers(val.trim(), 10);
+      if (!players.length) {
+        res.innerHTML = `<div class="state-msg" style="padding:16px 0">No players found.</div>`;
+        return;
+      }
+      res.innerHTML = `
+        <div class="lb-header" style="margin-top:12px">
+          <div></div><div>Player</div><div style="text-align:right">Score</div><div style="text-align:right">Plays</div>
+        </div>
+      `;
+      players.forEach(p => {
+        const row = document.createElement('div');
+        const isMe = p.uid === currentUser.uid;
+        row.className = `lb-row${isMe ? ' lb-me' : ''}`;
+        if (!isMe) {
+          row.style.cursor = 'pointer';
+          row.addEventListener('click', () => { window.location.href = `user.html?uid=${p.uid}`; });
+        }
+        row.innerHTML = `
+          <div class="lb-rank"></div>
+          <div class="lb-name">
+            <span class="lb-avatar">${avatarEmoji(p.avatarId)}</span>
+            <div>
+              <div>${esc(p.username)}${isMe ? ' <span style="color:var(--accent);font-size:10px">(you)</span>' : ''}</div>
+              <div style="font-size:9px;color:var(--text-dim);letter-spacing:1px">${esc(titleDisplay(p.equippedTitle) || '')}</div>
+            </div>
+          </div>
+          <div class="lb-score">${((p.stats||{}).totalScore||0).toLocaleString()}</div>
+          <div class="lb-acc">${((p.stats||{}).totalPlays||0)} plays</div>
+        `;
+        res.appendChild(row);
+      });
+    } catch (e) {
+      res.innerHTML = `<div class="state-msg" style="padding:16px 0">Error: ${e.message}</div>`;
+    }
+  }, 350);
+};
+
+// ─── Helpers ────────────────────────────────────────────────────────
+function avatarEmoji(id) {
+  const map = { default: '🥁', avatar_fire: '🔥', avatar_electric: '⚡', avatar_ice: '❄️',
+    avatar_cosmic: '🌌', avatar_ghost: '👻', avatar_skull: '💀', avatar_crown: '👑' };
+  return map[id] || '🥁';
+}
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── Initial load ────────────────────────────────────────────────────
+loadLevels();
+</script>
+</body>
+</html>
