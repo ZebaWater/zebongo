@@ -235,7 +235,7 @@ function _calcReward(results, level) {
   if (!level || !level.isVerified) {
     return { reward: 0, isFullCombo: isFc, unverified: true };
   }
-  const diff = Math.max(1, Math.min(5, level.difficulty || 1));
+  const diff = Math.max(1, Math.min(6, level.difficulty || 1));
   const acc  = Math.max(0, Math.min(100, results.accuracy || 0)) / 100;
   const reward = Math.floor(diff * (1 + acc));
   return { reward, isFullCombo: isFc, unverified: false };

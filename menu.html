@@ -486,6 +486,17 @@ search.addEventListener('input', () => {
   searchTimer = setTimeout(loadLevels, 350);
 });
 
+// ─── My-Maps search helper (lightweight local version of firebase matchesSearch) ──
+function myLevelsMatchesSearch(l, rawQuery) {
+  const q = rawQuery.toLowerCase().trim();
+  if (!q) return true;
+  return (
+    (l.title  || '').toLowerCase().includes(q) ||
+    (l.artist || '').toLowerCase().includes(q) ||
+    (l.bpm    && String(l.bpm).startsWith(q))
+  );
+}
+
 // ─── Load Levels ────────────────────────────────────────────────────
 async function loadLevels() {
   grid.innerHTML = `<div class="state-msg"><div class="spinner"></div>Loading…</div>`;
@@ -494,6 +505,20 @@ async function loadLevels() {
     let levels;
     if (currentTab === 'mine') {
       levels = await getMyLevels(currentUser.uid);
+      // Apply filters client-side (all levels already fetched)
+      if (difficulty !== null) {
+        levels = levels.filter(l => l.difficulty === difficulty);
+      }
+      const q = search.value.trim();
+      if (q) {
+        levels = levels.filter(l => myLevelsMatchesSearch(l, q));
+      }
+      // Apply sort
+      levels = levels.slice().sort((a, b) => {
+        if (sortBy === 'playCount') return (b.playCount || 0) - (a.playCount || 0);
+        if (sortBy === 'likeCount') return (b.likeCount || 0) - (a.likeCount || 0);
+        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+      });
     } else {
       levels = await getLevels({ search: search.value.trim(), sortBy, difficulty, verifiedOnly });
     }
