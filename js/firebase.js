@@ -165,6 +165,12 @@ function _defaultPlayer(uid, username, email) {
     currency: 100,
     xp:       0,
     level:    1,
+    // Denormalized copy of stats.totalScore kept at the top level so
+    // getTopPlayers() can use orderBy() server-side and fetch exactly N
+    // documents instead of N*5. Updated in lockstep with stats.totalScore
+    // inside submitScore(). Existing docs without this field sort to 0
+    // naturally (Firestore treats missing fields as less than any value).
+    totalScore: 0,
     // ─── Play statistics ─────────────────────────────────────────────
     stats: {
       totalPlays:        0,
@@ -289,12 +295,19 @@ export async function getPlayer(uid) {
 }
 
 export async function getTopPlayers(count = 20) {
-  // Fetch a larger batch and sort client-side to avoid requiring a composite
-  // index on the nested field stats.totalScore.
-  const snap = await getDocs(query(collection(db, 'players'), limit(count * 5)));
-  const players = snap.docs.map(d => d.data());
-  players.sort((a, b) => ((b.stats?.totalScore || 0) - (a.stats?.totalScore || 0)));
-  return players.slice(0, count).map((p, i) => ({ rank: i + 1, ...p }));
+  // totalScore is a top-level denormalized mirror of stats.totalScore written
+  // by submitScore(). Using it here lets Firestore do the sort and limit
+  // server-side, fetching exactly `count` documents instead of count*5.
+  // Requires a single-field descending index on `totalScore` — Firestore
+  // creates these automatically on first query or via the console.
+  // Docs without this field sort to the bottom (Firestore treats missing
+  // fields as less-than any value), so old accounts self-heal as they play.
+  const snap = await getDocs(query(
+    collection(db, 'players'),
+    orderBy('totalScore', 'desc'),
+    limit(count),
+  ));
+  return snap.docs.map((d, i) => ({ rank: i + 1, ...d.data() }));
 }
 
 export async function searchPlayers(username, count = 10) {
@@ -466,11 +479,9 @@ export async function isCurrentUserAdmin() {
  * server-side in firestore.rules.
  */
 export async function verifyLevel(levelId, adminUid) {
-  // Load the admin's own doc to double-check before making the call
-  const adminSnap = await getDoc(doc(db, 'players', adminUid));
-  if (!adminSnap.exists() || adminSnap.data().isAdmin !== true) {
-    throw new Error('Only admins can verify levels');
-  }
+  // The caller (menu.html) already holds playerData with isAdmin checked
+  // client-side, and the real enforcement is in Firestore rules (isAdmin()).
+  // The redundant getDoc here has been removed to save one read per action.
   await updateDoc(doc(db, 'levels', levelId), {
     isVerified:    true,
     verifiedBy:    adminUid,
@@ -480,10 +491,7 @@ export async function verifyLevel(levelId, adminUid) {
 }
 
 export async function unverifyLevel(levelId, adminUid) {
-  const adminSnap = await getDoc(doc(db, 'players', adminUid));
-  if (!adminSnap.exists() || adminSnap.data().isAdmin !== true) {
-    throw new Error('Only admins can unverify levels');
-  }
+  // Same as verifyLevel — rules enforce the admin guard server-side.
   await updateDoc(doc(db, 'levels', levelId), {
     isVerified:    false,
     verifiedBy:    null,
@@ -498,14 +506,16 @@ export async function unverifyLevel(levelId, adminUid) {
  * filters out already-verified ones.
  */
 export async function getUnverifiedLevels(count = 50) {
+  // Both filters are equality clauses on different fields — no composite index
+  // required. The old approach fetched up to 150 published levels and
+  // discarded verified ones client-side; this only fetches unverified ones.
   const snap = await getDocs(query(
     collection(db, 'levels'),
-    where('isPublished', '==', true),
-    limit(150)
+    where('isPublished',  '==', true),
+    where('isVerified',   '==', false),
+    limit(count + 10),
   ));
-  const levels = snap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
-    .filter(l => !l.isVerified);
+  const levels = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   levels.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
   return levels.slice(0, count);
 }
@@ -553,20 +563,25 @@ function matchesSearch(l, search) {
 }
 
 export async function getLevels({ search = '', sortBy = 'createdAt', difficulty = null, verifiedOnly = false, count = 20 } = {}) {
-  // Single where() — no composite index needed.
-  const snap = await getDocs(query(
-    collection(db, 'levels'),
-    where('isPublished', '==', true),
-    limit(150)   // generous batch; filtering + sorting done client-side
-  ));
+  // Push equality filters server-side so Firestore only returns documents that
+  // actually match. Multiple equality where() clauses on different fields do
+  // NOT require a composite index — Firestore handles them fine individually.
+  // A text search needs a wider pool (client-side substring match), so we only
+  // tighten the batch size when there is no free-text search active.
+  let q = query(collection(db, 'levels'), where('isPublished', '==', true));
+
+  if (difficulty !== null) q = query(q, where('difficulty', '==', difficulty));
+  if (verifiedOnly)        q = query(q, where('isVerified',  '==', true));
+
+  // With filters applied server-side we need far fewer documents in the buffer.
+  // Text search still needs a larger pool for substring matching; without it
+  // a small count+headroom is sufficient.
+  const batchSize = search ? 80 : count + 10;
+  q = query(q, limit(batchSize));
+
+  const snap = await getDocs(q);
   let levels = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  if (difficulty !== null) {
-    levels = levels.filter(l => l.difficulty === difficulty);
-  }
-  if (verifiedOnly) {
-    levels = levels.filter(l => l.isVerified === true);
-  }
   if (search) {
     levels = levels.filter(l => matchesSearch(l, search));
   }
@@ -680,6 +695,7 @@ export async function submitScore(uid, levelId, results) {
     const statsUpdate = {
       'stats.totalPlays':       increment(1),
       'stats.totalScore':       increment(results.score),
+      totalScore:               increment(results.score), // top-level mirror for orderBy in getTopPlayers
       'stats.totalPerfects':    increment(results.counts.PERFECT || 0),
       'stats.totalGreats':      increment(results.counts.GREAT   || 0),
       'stats.totalGoods':       increment(results.counts.GOOD    || 0),
@@ -1125,12 +1141,11 @@ export async function deleteMessage(uid, msgId) {
 }
 
 export async function getUnreadCount(uid) {
-  // Read directly from the inbox subcollection so the badge is always
-  // accurate — the denormalized unreadCount field on the player doc can
-  // drift because senders cannot write to the recipient's doc (isSelf rule).
-  const snap = await getDocs(collection(db, 'players', uid, 'inbox'));
-  const unread = snap.docs.filter(d => !d.data().read).length;
-  // Heal the stored field while we are here (self-write, always allowed).
-  updateDoc(doc(db, 'players', uid), { unreadCount: unread }).catch(() => {});
-  return unread;
+  // Read the single player doc instead of the whole inbox subcollection.
+  // The unreadCount field is kept accurate by _syncUnreadCount() inside
+  // getInbox() and by markMessageRead(). Using the subcollection here used
+  // to cost up to 100 reads on every badge poll (45s interval in profile.html)
+  // — the single-document read costs exactly 1 regardless of inbox size.
+  const snap = await getDoc(doc(db, 'players', uid));
+  return snap.exists() ? (snap.data().unreadCount || 0) : 0;
 }

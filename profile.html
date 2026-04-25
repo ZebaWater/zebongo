@@ -54,14 +54,7 @@ body::before {
   position: relative;
 }
 .back-btn:hover, .inbox-btn:hover { background: rgba(255,255,255,0.08); border-color: var(--border-hi); }
-.inbox-btn .badge {
-  position: absolute; top: -6px; right: -6px;
-  background: var(--err); color: white; font-size: 9px;
-  min-width: 18px; height: 18px; border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-d); padding: 0 5px; letter-spacing: 0;
-  box-shadow: 0 0 8px rgba(255,77,109,0.4);
-}
+
 
 .page { max-width: 840px; margin: 0 auto; padding: 24px 20px 60px; position: relative; z-index: 1; }
 
@@ -206,12 +199,7 @@ body::before {
 }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); text-shadow: 0 0 12px var(--accent-glow); }
 .tab:hover:not(.active) { color: var(--text); }
-.tab .tab-badge {
-  position: absolute; top: 4px; right: 4px; background: var(--err); color: white;
-  font-size: 9px; min-width: 16px; height: 16px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center; padding: 0 4px;
-  letter-spacing: 0; box-shadow: 0 0 6px rgba(255,77,109,0.4);
-}
+
 
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
@@ -398,7 +386,7 @@ body::before {
   <a class="logo" href="menu.html" title="Back to Menu">Ze<span>Bongo</span></a>
   <div class="topbar-spacer"></div>
   <button class="inbox-btn" onclick="showTab('social'); showSocialSub('inbox')">
-    Inbox <span class="badge" id="nav-unread-badge" style="display:none">0</span>
+    Inbox
   </button>
   <button class="back-btn" onclick="window.location.href='menu.html'">← Menu</button>
 </div>
@@ -439,7 +427,7 @@ body::before {
     <button class="tab"        data-tab="shop"         onclick="showTab('shop')">Shop</button>
     <button class="tab"        data-tab="history"      onclick="showTab('history')">History</button>
     <button class="tab"        data-tab="social"       onclick="showTab('social')">
-      Social <span class="tab-badge" id="social-unread-badge" style="display:none">0</span>
+      Social
     </button>
   </div>
 
@@ -484,7 +472,7 @@ import {
   titleDisplay, getShopItem,
   updateProfileFields, pingPresence, isOnline,
   listFriends, removeFriend, acceptFriendRequest, sendMessage,
-  getInbox, markMessageRead, deleteMessage, getUnreadCount,
+  getInbox, markMessageRead, deleteMessage,
 } from './js/firebase.js';
 import { uploadToImgBB, tryCleanupImgBB } from './js/imgbb.js';
 
@@ -514,7 +502,15 @@ window.doBuy = async (itemId) => {
   if ((player?.currency || 0) < item.price) { toast('Not enough coins! Need 🪙 ' + item.price); return; }
   try {
     await purchaseItem(currentUser.uid, itemId);
-    player = await getPlayer(currentUser.uid);
+    // Patch the local player object instead of re-reading the whole doc.
+    const field =
+      item.type === 'avatar' ? 'unlockedAvatars' :
+      item.type === 'notes'  ? 'unlockedNoteColors' :
+      item.type === 'title'  ? 'unlockedTitles' :
+      item.type === 'border' ? 'unlockedBorders' :
+      item.type === 'effect' ? 'unlockedEffects' : null;
+    if (field) player[field] = [...(player[field] || []), itemId];
+    player.currency = (player.currency || 0) - item.price;
     renderHeader(); renderShop(); toast('Purchased ' + item.name + '!');
   } catch(e) { toast(e.message); }
 };
@@ -522,7 +518,9 @@ window.doBuy = async (itemId) => {
 window.doEquip = async (type, itemId) => {
   try {
     await equipCosmetic(currentUser.uid, type, itemId);
-    player = await getPlayer(currentUser.uid);
+    // Patch the local player object — no need to re-read the full doc.
+    const fieldMap = { avatar:'avatarId', notes:'noteSkinsId', title:'equippedTitle', border:'borderId', effect:'effectId' };
+    if (fieldMap[type]) player[fieldMap[type]] = itemId;
     renderHeader(); renderShop();
     toast(type === 'notes' ? 'Equipped! New skin applies next song.' : 'Equipped!');
   } catch(e) { toast(e.message); }
@@ -532,7 +530,8 @@ window.doRemoveFriend = async (uid, name) => {
   if (!confirm(`Remove ${name} from friends?`)) return;
   try {
     await removeFriend(currentUser.uid, uid);
-    player = await getPlayer(currentUser.uid);
+    // Patch local friendCount — removeFriend syncs the real count server-side.
+    player.friendCount = Math.max(0, (player.friendCount || 1) - 1);
     renderHeader(); renderFriends();
   } catch(e) { toast(e.message); }
 };
@@ -555,8 +554,6 @@ if (currentUser && !bootError) {
   }
   pingPresence(currentUser.uid);
   setInterval(() => pingPresence(currentUser.uid), 60_000);
-  refreshUnreadBadge();
-  setInterval(refreshUnreadBadge, 45_000);
 }
 
 // If anything went wrong above, surface it in the stats grid instead of
@@ -818,7 +815,6 @@ async function renderInbox() {
   el.innerHTML = '<div class="state-msg"><div class="spinner"></div>Loading inbox…</div>';
   try {
     const msgs = await getInbox(currentUser.uid);
-    refreshUnreadBadge();
     if (!msgs.length) {
       el.innerHTML = '<div class="state-msg">Your inbox is empty.</div>';
       return;
@@ -883,7 +879,6 @@ async function openInboxMessage(msgId, type, fromUid, msg) {
   // Mark as read as soon as it's opened
   if (!msg.read) {
     markMessageRead(currentUser.uid, msgId).catch(() => {});
-    refreshUnreadBadge();
   }
 
   if (type === 'friend_request') {
@@ -891,7 +886,8 @@ async function openInboxMessage(msgId, type, fromUid, msg) {
       e.target.disabled = true;
       try {
         await acceptFriendRequest(currentUser.uid, msgId, player);
-        player = await getPlayer(currentUser.uid);
+        // Patch local friendCount; the server-side count is synced by acceptFriendRequest.
+        player.friendCount = (player.friendCount || 0) + 1;
         renderHeader(); renderFriends(); renderInbox(); close();
         toast('Friend added');
       } catch (err) {
@@ -952,18 +948,7 @@ function openCompose(toUid, toUsername) {
   body.focus();
 }
 
-async function refreshUnreadBadge() {
-  try {
-    const n = await getUnreadCount(currentUser.uid);
-    const navBadge  = document.getElementById('nav-unread-badge');
-    const tabBadge  = document.getElementById('social-unread-badge');
-    [navBadge, tabBadge].forEach(b => {
-      if (!b) return;
-      b.textContent = n > 99 ? '99+' : n;
-      b.style.display = n > 0 ? '' : 'none';
-    });
-  } catch (_) {}
-}
+
 
 // ─── Edit Profile ──────────────────────────────────────────────────────
 document.getElementById('btn-edit-profile').addEventListener('click', openEditModal);
@@ -1059,7 +1044,8 @@ function openEditModal() {
     try {
       if (player.profilePicDeleteUrl) tryCleanupImgBB(player.profilePicDeleteUrl);
       await updateProfileFields(currentUser.uid, { profilePicUrl: '', profilePicDeleteUrl: '' });
-      player = await getPlayer(currentUser.uid);
+      player.profilePicUrl       = '';
+      player.profilePicDeleteUrl = '';
       renderHeader(); modal.remove();
       toast('Profile picture removed');
     } catch(err) { flash(err.message, 'err'); e.target.disabled = false; }
@@ -1077,7 +1063,7 @@ function openEditModal() {
         if (player.profilePicDeleteUrl) tryCleanupImgBB(player.profilePicDeleteUrl);
         picFields = { profilePicUrl: url, profilePicDeleteUrl: deleteUrl };
       }
-      await updateProfileFields(currentUser.uid, {
+      const profileUpdates = {
         bio:          modal.querySelector('#f-bio').value.trim(),
         country:      modal.querySelector('#f-country').value.trim().toUpperCase(),
         pronouns:     modal.querySelector('#f-pronouns').value.trim(),
@@ -1085,8 +1071,11 @@ function openEditModal() {
         showBirthday: modal.querySelector('#f-show-bday').value === 'true',
         accentColor:  modal.querySelector('#f-accent').value,
         ...picFields,
-      });
-      player = await getPlayer(currentUser.uid);
+      };
+      await updateProfileFields(currentUser.uid, profileUpdates);
+      // Patch local player object so renderHeader() reflects the changes
+      // without an extra round-trip to Firestore.
+      Object.assign(player, profileUpdates);
       renderHeader();
       toast('Profile updated');
       modal.remove();
