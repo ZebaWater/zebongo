@@ -165,12 +165,6 @@ function _defaultPlayer(uid, username, email) {
     currency: 100,
     xp:       0,
     level:    1,
-    // Denormalized copy of stats.totalScore kept at the top level so
-    // getTopPlayers() can use orderBy() server-side and fetch exactly N
-    // documents instead of N*5. Updated in lockstep with stats.totalScore
-    // inside submitScore(). Existing docs without this field sort to 0
-    // naturally (Firestore treats missing fields as less than any value).
-    totalScore: 0,
     // ─── Play statistics ─────────────────────────────────────────────
     stats: {
       totalPlays:        0,
@@ -295,19 +289,18 @@ export async function getPlayer(uid) {
 }
 
 export async function getTopPlayers(count = 20) {
-  // totalScore is a top-level denormalized mirror of stats.totalScore written
-  // by submitScore(). Using it here lets Firestore do the sort and limit
-  // server-side, fetching exactly `count` documents instead of count*5.
-  // Requires a single-field descending index on `totalScore` — Firestore
-  // creates these automatically on first query or via the console.
-  // Docs without this field sort to the bottom (Firestore treats missing
-  // fields as less-than any value), so old accounts self-heal as they play.
-  const snap = await getDocs(query(
-    collection(db, 'players'),
-    orderBy('totalScore', 'desc'),
-    limit(count),
-  ));
-  return snap.docs.map((d, i) => ({ rank: i + 1, ...d.data() }));
+  // Fetch a generous batch and sort client-side by stats.totalScore — the
+  // single authoritative score field that has always been correctly
+  // incremented on every play. A top-level denormalized totalScore field was
+  // introduced and then removed because it started from 0 mid-game, causing
+  // existing players' totals to appear reset. Client-side sort on the nested
+  // field is the simplest correct approach for a small-scale game and needs
+  // no Firestore index management.
+  const batchSize = Math.min(count * 4, 200);
+  const snap = await getDocs(query(collection(db, 'players'), limit(batchSize)));
+  const players = snap.docs.map(d => d.data());
+  players.sort((a, b) => ((b.stats?.totalScore || 0) - (a.stats?.totalScore || 0)));
+  return players.slice(0, count).map((p, i) => ({ rank: i + 1, ...p }));
 }
 
 export async function searchPlayers(username, count = 10) {
@@ -695,7 +688,6 @@ export async function submitScore(uid, levelId, results) {
     const statsUpdate = {
       'stats.totalPlays':       increment(1),
       'stats.totalScore':       increment(results.score),
-      totalScore:               increment(results.score), // top-level mirror for orderBy in getTopPlayers
       'stats.totalPerfects':    increment(results.counts.PERFECT || 0),
       'stats.totalGreats':      increment(results.counts.GREAT   || 0),
       'stats.totalGoods':       increment(results.counts.GOOD    || 0),
