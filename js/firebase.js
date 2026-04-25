@@ -520,7 +520,39 @@ export async function getLevel(levelId) {
  * Get published levels. Supports search, sort (client-side), and difficulty filter.
  * Uses only a single where() clause so no composite indexes are required.
  */
-export async function getLevels({ search = '', sortBy = 'createdAt', difficulty = null, count = 20 } = {}) {
+
+/**
+ * Returns true when a level matches the plain-text search query.
+ * Checks: title, artist, creator username, HP mode, note speed (e.g. "2x" or "2.5"),
+ * difficulty label (e.g. "★★★"), and the special difficulty names
+ * (easy, normal, hard, expert, master, phd).
+ */
+function matchesSearch(l, search) {
+  const q = search.toLowerCase().trim();
+  if (!q) return true;
+
+  const DIFF_NAMES = ['', 'easy', 'normal', 'hard', 'expert', 'master', 'phd'];
+  const diffName   = DIFF_NAMES[l.difficulty] || '';
+  const diffStars  = '★'.repeat(l.difficulty || 0);
+  // Allow "2x" / "2.5x" / "2.0x" style speed queries
+  const speedStr   = l.noteSpeed ? String(l.noteSpeed) : '';
+  const speedAlt   = l.noteSpeed ? String(l.noteSpeed) + 'x' : '';
+  const verTag     = l.isVerified ? 'verified' : 'unverified';
+
+  return (
+    (l.title           || '').toLowerCase().includes(q) ||
+    (l.artist          || '').toLowerCase().includes(q) ||
+    (l.creatorUsername || '').toLowerCase().includes(q) ||
+    (l.hpMode          || '').toLowerCase().includes(q) ||
+    diffName.includes(q) ||
+    diffStars.includes(q) ||
+    speedStr.startsWith(q) ||
+    speedAlt.startsWith(q.replace('×','x')) ||
+    verTag.includes(q)
+  );
+}
+
+export async function getLevels({ search = '', sortBy = 'createdAt', difficulty = null, verifiedOnly = false, count = 20 } = {}) {
   // Single where() — no composite index needed.
   const snap = await getDocs(query(
     collection(db, 'levels'),
@@ -532,13 +564,11 @@ export async function getLevels({ search = '', sortBy = 'createdAt', difficulty 
   if (difficulty !== null) {
     levels = levels.filter(l => l.difficulty === difficulty);
   }
+  if (verifiedOnly) {
+    levels = levels.filter(l => l.isVerified === true);
+  }
   if (search) {
-    const q = search.toLowerCase();
-    levels = levels.filter(l =>
-      (l.title          || '').toLowerCase().includes(q) ||
-      (l.artist         || '').toLowerCase().includes(q) ||
-      (l.creatorUsername|| '').toLowerCase().includes(q)
-    );
+    levels = levels.filter(l => matchesSearch(l, search));
   }
 
   // Client-side sort descending
@@ -823,11 +853,16 @@ export function tsToDate(ts) {
 }
 
 export function difficultyLabel(n) {
-  return ['?','★','★★','★★★','★★★★','★★★★★'][n] || '?';
+  return ['?','★','★★','★★★','★★★★','★★★★★','★★★★★★'][n] || '?';
 }
 
 export function difficultyColor(n) {
-  return ['#888','#4DC4FF','#88FF99','#FFE566','#FFB347','#FF4D6D'][n] || '#888';
+  return ['#888','#4DC4FF','#88FF99','#FFE566','#FFB347','#FF4D6D','#C084FC'][n] || '#888';
+}
+
+/** Returns true when a difficulty is the special PhD tier (6). */
+export function difficultyIsPhD(n) {
+  return n === 6;
 }
 
 // ─── PROFILE EDITS ───────────────────────────────────────────────────────────
